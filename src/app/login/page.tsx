@@ -60,7 +60,6 @@ export default function UserLoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your team password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
