@@ -50,7 +50,7 @@ export default function ProductForm({ addProduct }: ProductFormProps) {
           <PlusCircle />
           Add New Product
         </CardTitle>
-        <CardDescription>Enter product details to add it to the sales table.</CardDescription>
+        <CardDescription></CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 items-end">
