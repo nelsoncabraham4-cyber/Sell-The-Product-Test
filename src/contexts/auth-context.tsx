@@ -30,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (user) {
         // This is a simplified way to determine admin.
         // In a real app, you'd use custom claims or check a database role.
-        const isAdmin = user.email === 'admin@example.com';
+        const isAdmin = user.email?.toLowerCase() === 'admin@example.com';
         const name = isAdmin ? 'Admin' : (user.displayName || 'User');
         
         setAuthInfo({ 
