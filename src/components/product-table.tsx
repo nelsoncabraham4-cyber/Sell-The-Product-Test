@@ -36,7 +36,7 @@ export default function ProductTable({ products, onSale, onDelete, isAdmin }: Pr
                 className="transition-colors duration-500 data-[sold=true]:bg-green-100/50 dark:data-[sold=true]:bg-green-900/30"
               >
                 <TableCell className="font-medium">{product.name}</TableCell>
-                <TableCell>${product.actualPrice.toFixed(2)}</TableCell>
+                <TableCell>₹{product.actualPrice.toFixed(2)}</TableCell>
                 <TableCell>
                   {product.isSold ? (
                     <Badge variant="destructive">Sold</Badge>
@@ -47,7 +47,7 @@ export default function ProductTable({ products, onSale, onDelete, isAdmin }: Pr
                 {!isAdmin && (
                   <TableCell>
                     {product.isSold && product.sellingPrice
-                      ? `$${product.sellingPrice.toFixed(2)}`
+                      ? `₹${product.sellingPrice.toFixed(2)}`
                       : '-'}
                   </TableCell>
                 )}

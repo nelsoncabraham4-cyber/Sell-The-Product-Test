@@ -71,7 +71,7 @@ export default function Leaderboard({ sales }: LeaderboardProps) {
                   </TableCell>
                   <TableCell className="font-medium">{team.name}</TableCell>
                   <TableCell className="text-right font-semibold text-green-600 dark:text-green-400">
-                    ${team.profit.toFixed(2)}
+                    ₹{team.profit.toFixed(2)}
                   </TableCell>
                 </TableRow>
               ))}
