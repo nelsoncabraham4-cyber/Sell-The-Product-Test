@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { User, Shield } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Home() {
   const { auth } = useAuth();
@@ -18,18 +19,10 @@ export default function Home() {
     }
   };
 
-  const handleAdminClick = () => {
-    if (auth?.type === 'admin') {
-      router.push('/admin/dashboard');
-    } else {
-      router.push('/admin/login');
-    }
-  };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-full py-12">
       <div className="text-center mb-12">
-        <h2 className="text-xl md:text-2xl text-muted-foreground font-light mb-2">Welcome to</h2>
+        <h2 className="text-base sm:text-lg md:text-xl text-muted-foreground font-light mb-2">Welcome to</h2>
         <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-foreground whitespace-nowrap">
           Sell The Product
         </h1>
@@ -38,8 +31,8 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
-        <Card className="transition-all duration-300">
+      <div className="flex justify-center w-full max-w-md mb-8">
+        <Card className="transition-all duration-300 w-full">
           <CardHeader className="items-center text-center">
             <div className="p-4 bg-secondary rounded-full mb-4">
               <User className="w-12 h-12 text-secondary-foreground" />
@@ -58,26 +51,13 @@ export default function Home() {
             </Button>
           </CardContent>
         </Card>
-
-        <Card className="transition-all duration-300">
-          <CardHeader className="items-center text-center">
-             <div className="p-4 bg-secondary rounded-full mb-4">
-                <Shield className="w-12 h-12 text-secondary-foreground" />
-            </div>
-            <CardTitle className="font-headline text-3xl font-bold">For Admins</CardTitle>
-            <CardDescription>
-              {auth?.type === 'admin'
-                ? `Welcome back, ${auth.name}! Go to your dashboard.`
-                : 'Log in to manage the competition.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <Button onClick={handleAdminClick} variant="secondary" size="lg" className="font-bold">
-              {auth?.type === 'admin' ? 'Go to Dashboard' : 'Admin Login'}
-              <Shield className="ml-2" />
-            </Button>
-          </CardContent>
-        </Card>
+      </div>
+      
+      <div className="text-center">
+        <Link href="/admin/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Admin Login
+        </Link>
       </div>
     </div>
   );
