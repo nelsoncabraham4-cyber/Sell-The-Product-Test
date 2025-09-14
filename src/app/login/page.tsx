@@ -40,7 +40,7 @@ export default function UserLoginPage() {
             <User className="w-8 h-8 text-primary-foreground" />
           </div>
           <CardTitle className="font-headline text-3xl">User Login</CardTitle>
-          <CardDescription>Enter your team name and password to continue.</CardDescription>
+          <CardDescription></CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-6">
