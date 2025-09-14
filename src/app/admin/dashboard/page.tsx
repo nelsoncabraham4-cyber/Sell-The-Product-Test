@@ -12,13 +12,16 @@ import { ClearHistoryButton } from '@/components/clear-history-button';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+const initialProducts: Product[] = [];
+const initialSales: Sale[] = [];
+
 export default function AdminDashboardPage() {
   const { auth } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
-  const [products, setProducts] = useLocalStorage<Product[]>('products', []);
-  const [sales, setSales] = useLocalStorage<Sale[]>('sales', []);
+  const [products, setProducts] = useLocalStorage<Product[]>('products', initialProducts);
+  const [sales, setSales] = useLocalStorage<Sale[]>('sales', initialSales);
 
   useEffect(() => {
     if (!auth) {

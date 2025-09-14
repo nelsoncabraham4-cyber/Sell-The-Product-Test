@@ -9,13 +9,16 @@ import ProductTable from '@/components/product-table';
 import Leaderboard from '@/components/leaderboard';
 import { useToast } from '@/hooks/use-toast';
 
+const initialProducts: Product[] = [];
+const initialSales: Sale[] = [];
+
 export default function DashboardPage() {
   const { auth } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
-  const [products, setProducts] = useLocalStorage<Product[]>('products', []);
-  const [sales, setSales] = useLocalStorage<Sale[]>('sales', []);
+  const [products, setProducts] = useLocalStorage<Product[]>('products', initialProducts);
+  const [sales, setSales] = useLocalStorage<Sale[]>('sales', initialSales);
 
   useEffect(() => {
     if (!auth) {
