@@ -36,8 +36,11 @@ export default function Home() {
         <div className="h-48 bg-gradient-to-r from-secondary to-cyan-400 blur-3xl"></div>
       </div>
       <div className="text-center mb-12">
-        <h1 className="font-headline text-5xl md:text-6xl font-extrabold text-primary tracking-tighter">
-          Welcome to Sell The Product
+        <h1 className="font-headline text-5xl md:text-7xl font-extrabold tracking-tighter">
+          <span className="block text-3xl md:text-4xl font-medium text-muted-foreground mb-2">Welcome to</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
+            Sell The Product
+          </span>
         </h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
           The ultimate sales competition where legends are born. Ready to join the game?
