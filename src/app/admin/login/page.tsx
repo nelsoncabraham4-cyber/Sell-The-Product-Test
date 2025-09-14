@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
 import { Shield } from 'lucide-react';
 
 const ADMIN_PREDEFINED_PASSWORD = '4321';
@@ -15,30 +14,19 @@ const ADMIN_PREDEFINED_PASSWORD = '4321';
 export default function AdminLoginPage() {
   const { login } = useAuth();
   const { toast } = useToast();
-  const router = useRouter();
-  const [predefinedPassword, setPredefinedPassword] = useState('');
-  const [adminName, setAdminName] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (predefinedPassword !== ADMIN_PREDEFINED_PASSWORD) {
+    if (password !== ADMIN_PREDEFINED_PASSWORD) {
       toast({
         title: 'Login Failed',
-        description: 'Incorrect predefined password.',
+        description: 'Incorrect admin password.',
         variant: 'destructive',
       });
       return;
     }
-    if (!adminName.trim() || !password.trim()) {
-      toast({
-        title: 'Login Failed',
-        description: 'Please fill in all fields.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    login({ type: 'admin', name: adminName });
+    login({ type: 'admin', name: 'Admin' });
   };
 
   return (
@@ -49,38 +37,16 @@ export default function AdminLoginPage() {
             <Shield className="w-8 h-8 text-secondary-foreground" />
           </div>
           <CardTitle className="font-headline text-3xl">Admin Login</CardTitle>
-          <CardDescription>Enter your credentials for administrative access.</CardDescription>
+          <CardDescription>Enter the password for administrative access.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="predefinedPassword">Predefined Password</Label>
-              <Input
-                id="predefinedPassword"
-                type="password"
-                placeholder="••••"
-                value={predefinedPassword}
-                onChange={(e) => setPredefinedPassword(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="adminName">Your Name</Label>
-              <Input
-                id="adminName"
-                type="text"
-                placeholder="e.g., Jane Doe"
-                value={adminName}
-                onChange={(e) => setAdminName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Your Password</Label>
+              <Label htmlFor="password">Admin Password</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your unique password"
+                placeholder="••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
