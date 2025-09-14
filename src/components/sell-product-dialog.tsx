@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/auth-context';
 
 interface SellProductDialogProps {
   product: Product;
-  onSale: (sale: Sale, productId: string) => void;
+  onSale: (sale: Omit<Sale, 'id'>) => void;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -51,8 +51,7 @@ export function SellProductDialog({ product, onSale, isOpen, onOpenChange }: Sel
     }
 
     const profit = price - product.actualPrice;
-    const sale: Sale = {
-      id: new Date().toISOString(),
+    const sale: Omit<Sale, 'id'> = {
       productId: product.id,
       productName: product.name,
       teamName: auth.name,
@@ -62,7 +61,7 @@ export function SellProductDialog({ product, onSale, isOpen, onOpenChange }: Sel
       timestamp: Date.now(),
     };
 
-    onSale(sale, product.id);
+    onSale(sale);
     onOpenChange(false);
     toast({
       title: 'Product Sold!',

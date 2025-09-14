@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import useLocalStorage from '@/hooks/use-local-storage';
 import type { Product, Sale } from '@/lib/types';
 import ProductTable from '@/components/product-table';
 import Leaderboard from '@/components/leaderboard';
@@ -11,17 +10,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShoppingBag } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { db } from '@/lib/firebase';
+import { ref, onValue, push } from 'firebase/database';
 
-
-const initialProducts: Product[] = [];
-const initialSales: Sale[] = [];
 
 export default function DashboardPage() {
   const { auth } = useAuth();
   const router = useRouter();
 
-  const [products, setProducts] = useLocalStorage<Product[]>('products', initialProducts);
-  const [sales, setSales] = useLocalStorage<Sale[]>('sales', initialSales);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
 
   useEffect(() => {
     if (!auth) {
@@ -31,8 +29,30 @@ export default function DashboardPage() {
     }
   }, [auth, router]);
 
-  const handleSale = (sale: Sale) => {
-    setSales((prevSales) => [...prevSales, sale]);
+  useEffect(() => {
+    const productsRef = ref(db, 'products');
+    const unsubscribeProducts = onValue(productsRef, (snapshot) => {
+      const data = snapshot.val();
+      const loadedProducts: Product[] = data ? Object.entries(data).map(([key, value]) => ({ id: key, ...(value as Omit<Product, 'id'>) })) : [];
+      setProducts(loadedProducts);
+    });
+
+    const salesRef = ref(db, 'sales');
+    const unsubscribeSales = onValue(salesRef, (snapshot) => {
+      const data = snapshot.val();
+      const loadedSales: Sale[] = data ? Object.entries(data).map(([key, value]) => ({ id: key, ...(value as Omit<Sale, 'id'>) })) : [];
+      setSales(loadedSales);
+    });
+
+    return () => {
+      unsubscribeProducts();
+      unsubscribeSales();
+    };
+  }, []);
+
+  const handleSale = (sale: Omit<Sale, 'id'>) => {
+    const salesRef = ref(db, 'sales');
+    push(salesRef, sale);
   };
   
   const userSales = useMemo(() => {

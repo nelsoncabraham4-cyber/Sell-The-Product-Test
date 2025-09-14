@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import useLocalStorage from '@/hooks/use-local-storage';
 import type { Product, Sale } from '@/lib/types';
 import ProductTable from '@/components/product-table';
 import Leaderboard from '@/components/leaderboard';
@@ -13,17 +12,16 @@ import { ClearHistoryButton } from '@/components/clear-history-button';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-const initialProducts: Product[] = [];
-const initialSales: Sale[] = [];
+import { db } from '@/lib/firebase';
+import { ref, onValue, push, remove, set } from 'firebase/database';
 
 export default function AdminDashboardPage() {
   const { auth } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
-  const [products, setProducts] = useLocalStorage<Product[]>('products', initialProducts);
-  const [sales, setSales] = useLocalStorage<Sale[]>('sales', initialSales);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
 
   useEffect(() => {
     if (!auth) {
@@ -33,12 +31,35 @@ export default function AdminDashboardPage() {
     }
   }, [auth, router]);
 
+  useEffect(() => {
+    const productsRef = ref(db, 'products');
+    const unsubscribeProducts = onValue(productsRef, (snapshot) => {
+      const data = snapshot.val();
+      const loadedProducts: Product[] = data ? Object.entries(data).map(([key, value]) => ({ id: key, ...(value as Omit<Product, 'id'>) })) : [];
+      setProducts(loadedProducts);
+    });
+
+    const salesRef = ref(db, 'sales');
+    const unsubscribeSales = onValue(salesRef, (snapshot) => {
+      const data = snapshot.val();
+      const loadedSales: Sale[] = data ? Object.entries(data).map(([key, value]) => ({ id: key, ...(value as Omit<Sale, 'id'>) })) : [];
+      setSales(loadedSales);
+    });
+
+    return () => {
+      unsubscribeProducts();
+      unsubscribeSales();
+    };
+  }, []);
+
   const addProduct = (product: Omit<Product, 'id'>) => {
-    setProducts((prev) => [...prev, { ...product, id: new Date().toISOString() }]);
+    const productsRef = ref(db, 'products');
+    push(productsRef, product);
   };
 
   const deleteProduct = (productId: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== productId));
+    const productRef = ref(db, `products/${productId}`);
+    remove(productRef);
     toast({
         title: 'Product Deleted',
         description: 'The product has been removed from the list.',
@@ -46,8 +67,11 @@ export default function AdminDashboardPage() {
   };
 
   const clearAllData = () => {
-    setProducts([]);
-    setSales([]);
+    const productsRef = ref(db, 'products');
+    set(productsRef, null);
+    const salesRef = ref(db, 'sales');
+    set(salesRef, null);
+    
     toast({
       title: 'Data Cleared',
       description: 'All products and sales data have been permanently deleted.',

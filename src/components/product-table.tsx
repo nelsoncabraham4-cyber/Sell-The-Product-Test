@@ -10,7 +10,7 @@ import { useState } from 'react';
 
 interface ProductTableProps {
   products: Product[];
-  onSale?: (sale: Sale, productId: string) => void;
+  onSale?: (sale: Omit<Sale, 'id'>) => void;
   onDelete?: (productId: string) => void;
   isAdmin: boolean;
 }
@@ -18,9 +18,9 @@ interface ProductTableProps {
 export default function ProductTable({ products, onSale, onDelete, isAdmin }: ProductTableProps) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const handleSale = (sale: Sale, productId: string) => {
+  const handleSale = (sale: Omit<Sale, 'id'>) => {
     if (onSale) {
-        onSale(sale, productId);
+        onSale(sale);
     }
     setSelectedProduct(null);
   };
