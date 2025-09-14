@@ -31,7 +31,6 @@ export default function DashboardPage() {
   }, [auth, isLoading, router]);
 
   useEffect(() => {
-    if (isLoading) return <div className="text-center p-8">Redirecting...</div>;
     if (!auth) return;
     const productsRef = ref(db, 'products');
     const unsubscribeProducts = onValue(productsRef, (snapshot) => {
@@ -51,7 +50,7 @@ export default function DashboardPage() {
       unsubscribeProducts();
       unsubscribeSales();
     };
-  }, [auth, isLoading]);
+  }, [auth]);
 
   const handleSale = (sale: Omit<Sale, 'id'>) => {
     const salesRef = ref(db, 'sales');
