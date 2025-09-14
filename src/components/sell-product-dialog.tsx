@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -9,7 +9,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,14 +19,20 @@ import { useAuth } from '@/contexts/auth-context';
 interface SellProductDialogProps {
   product: Product;
   onSale: (sale: Sale, productId: string) => void;
-  children: React.ReactNode;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function SellProductDialog({ product, onSale, children }: SellProductDialogProps) {
-  const [open, setOpen] = useState(false);
+export function SellProductDialog({ product, onSale, isOpen, onOpenChange }: SellProductDialogProps) {
   const [sellingPrice, setSellingPrice] = useState('');
   const { auth } = useAuth();
   const { toast } = useToast();
+  
+  useEffect(() => {
+    if (isOpen) {
+      setSellingPrice('');
+    }
+  }, [isOpen]);
 
   const handleSell = () => {
     if (!auth || auth.type !== 'user') {
@@ -58,8 +63,7 @@ export function SellProductDialog({ product, onSale, children }: SellProductDial
     };
 
     onSale(sale, product.id);
-    setOpen(false);
-    setSellingPrice('');
+    onOpenChange(false);
     toast({
       title: 'Product Sold!',
       description: `You sold "${product.name}" for ₹${price.toFixed(2)}. Profit: ₹${profit.toFixed(2)}.`,
@@ -68,8 +72,7 @@ export function SellProductDialog({ product, onSale, children }: SellProductDial
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="font-headline">Sell "{product.name}"</DialogTitle>
