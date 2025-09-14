@@ -34,11 +34,13 @@ export default function UserLoginPage() {
       await signInWithPopup(auth, provider);
       // Auth state will be handled by onAuthStateChanged in AuthProvider
     } catch (error: any) {
-      toast({
-        title: 'Login Failed',
-        description: error.message || "An unexpected error occurred with Google Sign-In.",
-        variant: 'destructive',
-      });
+      if (error.code !== 'auth/popup-closed-by-user') {
+        toast({
+          title: 'Login Failed',
+          description: error.message || "An unexpected error occurred with Google Sign-In.",
+          variant: 'destructive',
+        });
+      }
     }
   };
 
