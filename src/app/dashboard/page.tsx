@@ -52,7 +52,7 @@ export default function DashboardPage() {
         <h1 className="font-headline text-4xl font-bold">
           User Dashboard
         </h1>
-        <p className="text-muted-foreground">Welcome, {auth.name}! Time to make some sales.</p>
+        <p className="text-muted-foreground">Welcome, {auth.name}</p>
       </div>
 
        <Tabs defaultValue="dashboard">
