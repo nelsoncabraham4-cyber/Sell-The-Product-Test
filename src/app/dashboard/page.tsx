@@ -70,6 +70,11 @@ export default function DashboardPage() {
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [sales, auth]);
 
+  const availableProducts = useMemo(() => {
+    const soldProductIds = new Set(userSales.map(sale => sale.productId));
+    return products.filter(product => !soldProductIds.has(product.id));
+  }, [products, userSales]);
+
   if (isLoading || !auth || auth.type !== 'user' || !auth.name) {
     return <div className="text-center p-8">Redirecting...</div>;
   }
@@ -91,7 +96,7 @@ export default function DashboardPage() {
         <TabsContent value="dashboard" className="space-y-8 mt-8">
           <div>
             <h2 className="font-headline text-2xl font-bold">Products for Sale</h2>
-            <ProductTable products={products} onSale={handleSale} isAdmin={false} />
+            <ProductTable products={availableProducts} onSale={handleSale} isAdmin={false} />
           </div>
           <Card>
             <CardHeader>
