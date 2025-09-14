@@ -22,7 +22,9 @@ export default function DashboardPage() {
   const [sales, setSales] = useState<Sale[]>([]);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading) {
+      return; // Wait for auth state to be determined
+    }
     if (!auth) {
       router.push('/login');
     } else if (auth.type !== 'user') {
