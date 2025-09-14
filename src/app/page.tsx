@@ -29,6 +29,7 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-full py-12">
       <div className="text-center mb-12">
+        <h2 className="text-2xl md:text-3xl text-muted-foreground font-light mb-2">Welcome to</h2>
         <h1 className="font-headline text-5xl md:text-6xl font-bold tracking-tight text-foreground">
           Sell The Product
         </h1>
