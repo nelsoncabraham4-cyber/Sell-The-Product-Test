@@ -4,17 +4,17 @@
 
 @layer base {
   :root {
-    --background: 204 10% 95%;
+    --background: 220 20% 96%; /* Light Gray-Blue */
     --foreground: 215 28% 17%;
-    --card: 204 10% 100%;
+    --card: 220 15% 100%; /* Slightly bluish white */
     --card-foreground: 215 28% 17%;
-    --popover: 204 10% 100%;
+    --popover: 220 15% 100%;
     --popover-foreground: 215 28% 17%;
     --primary: 175 80% 40%; /* Vibrant Teal */
     --primary-foreground: 180 10% 98%;
     --secondary: 35 95% 58%; /* Bright Orange */
     --secondary-foreground: 24 20% 10%;
-    --muted: 210 40% 96%;
+    --muted: 220 20% 94%;
     --muted-foreground: 215 25% 45%;
     --accent: 210 90% 55%; /* Bright Blue */
     --accent-foreground: 210 40% 98%;
