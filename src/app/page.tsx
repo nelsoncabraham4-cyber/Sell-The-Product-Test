@@ -6,10 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useRouter } from 'next/navigation';
 import { User, Shield } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
   const { auth } = useAuth();
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleUserClick = () => {
     if (auth?.type === 'user') {
@@ -39,14 +45,14 @@ export default function Home() {
             </div>
             <CardTitle className="font-headline text-3xl font-bold">For Players</CardTitle>
             <CardDescription>
-              {auth?.type === 'user'
+              {isClient && auth?.type === 'user'
                 ? `Welcome back, ${auth.name}`
                 : 'Log in with your team to start selling!'}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
             <Button onClick={handleUserClick} size="lg" className="font-bold">
-              {auth?.type === 'user' ? 'Go to Dashboard' : 'Player Login'}
+              {isClient && auth?.type === 'user' ? 'Go to Dashboard' : 'Player Login'}
               <User className="ml-2" />
             </Button>
           </CardContent>
