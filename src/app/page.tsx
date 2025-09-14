@@ -36,8 +36,8 @@ export default function Home() {
         <div className="h-48 bg-gradient-to-r from-secondary to-cyan-400 blur-3xl"></div>
       </div>
       <div className="text-center mb-12">
-        <h1 className="font-headline text-5xl md:text-7xl font-extrabold tracking-tighter">
-          <span className="block text-3xl md:text-4xl font-medium text-muted-foreground mb-2">Welcome to</span>
+        <h1 className="font-headline text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tighter">
+          <span className="block text-2xl sm:text-3xl md:text-4xl font-medium text-muted-foreground mb-2">Welcome to</span>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent whitespace-nowrap">
             Sell The Product
           </span>
