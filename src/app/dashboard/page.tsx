@@ -71,7 +71,6 @@ export default function DashboardPage() {
                 <ShoppingBag />
                 Your Sales History
               </CardTitle>
-              <CardDescription>A record of all the products you've sold.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="rounded-lg border bg-card text-card-foreground">
