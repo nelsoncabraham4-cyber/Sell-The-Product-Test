@@ -19,7 +19,7 @@ export default function SalesFeed({ sales }: SalesFeedProps) {
           <Activity />
           Sales Feed
         </CardTitle>
-        <CardDescription>A live feed of all sales transactions.</CardDescription>
+        <CardDescription></CardDescription>
       </CardHeader>
       <CardContent>
         <div className="rounded-lg border bg-card text-card-foreground">
