@@ -8,7 +8,8 @@ import { getFirebaseAuth } from '@/lib/firebase';
 type AuthInfo = {
   uid: string;
   type: 'user' | 'admin';
-  name: string;
+  name: string | null;
+  email: string | null;
 };
 
 interface AuthContextType {
@@ -27,21 +28,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const processUser = useCallback(async (user: User | null) => {
     if (user) {
-      await user.reload(); 
-      const freshUser = getFirebaseAuth().currentUser;
+        // It's important to get the fresh user data, including displayName
+        await user.reload(); 
+        const freshUser = getFirebaseAuth().currentUser;
 
-      if (freshUser) {
-        const isAdmin = freshUser.email?.toLowerCase() === 'admin@example.com';
-        const name = freshUser.displayName || 'Player';
-        
-        setAuthInfo({ 
-          uid: freshUser.uid, 
-          type: isAdmin ? 'admin' : 'user',
-          name: name
-        });
-      } else {
-         setAuthInfo(null);
-      }
+        if (freshUser) {
+            const isAdmin = freshUser.email?.toLowerCase() === 'admin@example.com';
+            setAuthInfo({ 
+                uid: freshUser.uid, 
+                type: isAdmin ? 'admin' : 'user',
+                name: freshUser.displayName, // This will be null for new users
+                email: freshUser.email
+            });
+        } else {
+            setAuthInfo(null);
+        }
     } else {
       setAuthInfo(null);
     }
@@ -67,9 +68,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const user = auth.currentUser;
     if (user) {
       await updateProfile(user, { displayName: teamName });
-      await processUser(user);
+      // After updating, re-process the user to update the context state
+      await processUser(user); 
     } else {
-        throw new Error("User not found");
+      throw new Error("User not found. You must be logged in to set a team name.");
     }
   };
 

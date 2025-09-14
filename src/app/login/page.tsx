@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { User, Chrome } from 'lucide-react';
-import { signInAnonymously } from 'firebase/auth';
+import { User } from 'lucide-react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 import { Input } from '@/components/ui/input';
@@ -15,40 +15,52 @@ import { Label } from '@/components/ui/label';
 export default function UserLoginPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { auth, isLoading, setTeamName } = useAuth();
-  const [name, setName] = useState('');
+  const { auth, isLoading } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
-    if (!isLoading && auth && auth.type === 'user') {
-      router.push('/dashboard');
+    if (isLoading) return;
+    if (auth) {
+      if (auth.type === 'user' && auth.name) {
+        router.push('/dashboard');
+      } else if (auth.type === 'user' && !auth.name) {
+        router.push('/set-team-name');
+      } else if (auth.type === 'admin') {
+        router.push('/admin/dashboard');
+      }
     }
   }, [auth, isLoading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-        toast({
-            title: 'Team name is required',
-            description: 'Please enter a team name to continue.',
-            variant: 'destructive'
-        });
-        return;
+    if (!email.trim() || !password.trim()) {
+      toast({
+        title: 'Email and Password required',
+        description: 'Please enter your credentials.',
+        variant: 'destructive',
+      });
+      return;
     }
 
     const firebaseAuth = getFirebaseAuth();
     try {
-      const userCredential = await signInAnonymously(firebaseAuth);
-      await setTeamName(name);
-      router.push('/dashboard');
+      await signInWithEmailAndPassword(firebaseAuth, email, password);
+      // The useEffect will handle redirection.
     } catch (error: any) {
-        toast({
-          title: 'Login Failed',
-          description: error.message || "An unexpected error occurred during sign-in.",
-          variant: 'destructive',
-        });
+      console.error('Login Error:', error.code, error.message);
+      toast({
+        title: 'Login Failed',
+        description: 'Invalid email or password. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
-  
+
+  if (isLoading || auth) {
+    return <div className="text-center p-8">Loading...</div>;
+  }
+
   return (
     <>
       <div className="flex items-center justify-center py-12">
@@ -58,23 +70,34 @@ export default function UserLoginPage() {
               <User className="w-8 h-8 text-primary-foreground" />
             </div>
             <CardTitle className="font-headline text-3xl">Player Login</CardTitle>
-            <CardDescription>Enter your team name to start playing.</CardDescription>
+            <CardDescription>Enter the credentials provided to you.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-6">
-               <div className="space-y-2">
-                <Label htmlFor="teamName">Team Name</Label>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
-                    id="teamName"
-                    type="text"
-                    placeholder="e.g., The Winners"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
+                  id="email"
+                  type="email"
+                  placeholder="player@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
-                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
               <Button type="submit" className="w-full" size="lg">
-                Enter as Player
+                Login as Player
               </Button>
             </form>
           </CardContent>

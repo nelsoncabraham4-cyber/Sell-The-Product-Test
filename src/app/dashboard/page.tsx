@@ -27,8 +27,10 @@ export default function DashboardPage() {
     }
     if (!auth) {
       router.push('/login');
-    } else if (auth.type !== 'user') {
+    } else if (auth.type === 'admin') {
       router.push('/admin/dashboard');
+    } else if (auth.type === 'user' && !auth.name) {
+      router.push('/set-team-name');
     }
   }, [auth, isLoading, router]);
 
@@ -71,7 +73,7 @@ export default function DashboardPage() {
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [sales, auth]);
 
-  if (isLoading || !auth || auth.type !== 'user') {
+  if (isLoading || !auth || auth.type !== 'user' || !auth.name) {
     return <div className="text-center p-8">Redirecting...</div>;
   }
 

@@ -25,6 +25,14 @@ export default function Home() {
     }
   };
 
+  const handleAdminClick = () => {
+     if (auth?.type === 'admin') {
+      router.push('/admin/dashboard');
+    } else {
+      router.push('/admin/login');
+    }
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-full py-12">
       <div className="text-center mb-12">
@@ -33,37 +41,48 @@ export default function Home() {
           Sell The Product
         </h1>
         <p className="mt-4 text-sm text-muted-foreground max-w-2xl mx-auto">
-          
+          A game of wits, negotiation, and profit.
         </p>
       </div>
 
-      <div className="flex justify-center w-full max-w-md mb-8">
-        <Card className="transition-all duration-300 w-full">
+      <div className="grid md:grid-cols-2 gap-8 w-full max-w-4xl">
+        <Card className="transition-all duration-300">
           <CardHeader className="items-center text-center">
-            <div className="p-4 bg-secondary rounded-full mb-4">
-              <User className="w-12 h-12 text-secondary-foreground" />
+            <div className="p-4 bg-primary rounded-full mb-4">
+              <User className="w-12 h-12 text-primary-foreground" />
             </div>
             <CardTitle className="font-headline text-3xl font-bold">For Players</CardTitle>
             <CardDescription>
               {isClient && auth?.type === 'user'
                 ? `Welcome back, ${auth.name}`
-                : 'Log in with your team to start selling!'}
+                : 'Log in with your credentials to start selling!'}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
             <Button onClick={handleUserClick} size="lg" className="font-bold">
               {isClient && auth?.type === 'user' ? 'Go to Dashboard' : 'Player Login'}
-              <User className="ml-2" />
             </Button>
           </CardContent>
         </Card>
-      </div>
-      
-      <div className="text-center">
-        <Link href="/admin/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Admin Login
-        </Link>
+
+         <Card className="transition-all duration-300">
+          <CardHeader className="items-center text-center">
+            <div className="p-4 bg-secondary rounded-full mb-4">
+              <Shield className="w-12 h-12 text-secondary-foreground" />
+            </div>
+            <CardTitle className="font-headline text-3xl font-bold">For Admins</CardTitle>
+            <CardDescription>
+              {isClient && auth?.type === 'admin'
+                ? `Welcome, Administrator`
+                : 'Manage products and view all sales.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <Button onClick={handleAdminClick} variant="secondary" size="lg" className="font-bold">
+               {isClient && auth?.type === 'admin' ? 'Go to Dashboard' : 'Admin Login'}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
