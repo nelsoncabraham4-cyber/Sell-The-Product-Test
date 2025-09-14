@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import useLocalStorage from '@/hooks/use-local-storage';
 
@@ -11,6 +11,7 @@ type AuthInfo = {
 
 interface AuthContextType {
   auth: AuthInfo | null;
+  isLoading: boolean;
   login: (info: AuthInfo) => void;
   logout: () => void;
 }
@@ -19,7 +20,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [auth, setAuth] = useLocalStorage<AuthInfo | null>('auth', null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    setIsLoading(false);
+  }, []);
 
   const login = (info: AuthInfo) => {
     setAuth(info);
@@ -36,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ auth, login, logout }}>
+    <AuthContext.Provider value={{ auth, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

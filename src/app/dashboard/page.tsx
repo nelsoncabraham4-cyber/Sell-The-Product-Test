@@ -15,21 +15,23 @@ import { ref, onValue, push } from 'firebase/database';
 
 
 export default function DashboardPage() {
-  const { auth } = useAuth();
+  const { auth, isLoading } = useAuth();
   const router = useRouter();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
 
   useEffect(() => {
+    if (isLoading) return;
     if (!auth) {
       router.push('/login');
     } else if (auth.type !== 'user') {
       router.push('/admin/dashboard');
     }
-  }, [auth, router]);
+  }, [auth, isLoading, router]);
 
   useEffect(() => {
+    if (!auth) return;
     const productsRef = ref(db, 'products');
     const unsubscribeProducts = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
@@ -48,7 +50,7 @@ export default function DashboardPage() {
       unsubscribeProducts();
       unsubscribeSales();
     };
-  }, []);
+  }, [auth]);
 
   const handleSale = (sale: Omit<Sale, 'id'>) => {
     const salesRef = ref(db, 'sales');
@@ -62,7 +64,7 @@ export default function DashboardPage() {
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [sales, auth]);
 
-  if (!auth || auth.type !== 'user') {
+  if (isLoading || !auth || auth.type !== 'user') {
     return <div className="text-center p-8">Redirecting...</div>;
   }
 

@@ -16,7 +16,7 @@ import { db } from '@/lib/firebase';
 import { ref, onValue, push, remove, set } from 'firebase/database';
 
 export default function AdminDashboardPage() {
-  const { auth } = useAuth();
+  const { auth, isLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -24,14 +24,16 @@ export default function AdminDashboardPage() {
   const [sales, setSales] = useState<Sale[]>([]);
 
   useEffect(() => {
+    if (isLoading) return;
     if (!auth) {
       router.push('/admin/login');
     } else if (auth.type !== 'admin') {
       router.push('/dashboard');
     }
-  }, [auth, router]);
+  }, [auth, isLoading, router]);
 
   useEffect(() => {
+    if (!auth) return;
     const productsRef = ref(db, 'products');
     const unsubscribeProducts = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
@@ -50,7 +52,7 @@ export default function AdminDashboardPage() {
       unsubscribeProducts();
       unsubscribeSales();
     };
-  }, []);
+  }, [auth]);
 
   const addProduct = (product: Omit<Product, 'id'>) => {
     const productsRef = ref(db, 'products');
@@ -79,7 +81,7 @@ export default function AdminDashboardPage() {
     });
   };
 
-  if (!auth || auth.type !== 'admin') {
+  if (isLoading || !auth || auth.type !== 'admin') {
     return <div className="text-center p-8">Redirecting...</div>;
   }
 
