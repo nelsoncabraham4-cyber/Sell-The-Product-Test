@@ -26,18 +26,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const processUser = useCallback((user: User | null) => {
+  const processUser = useCallback(async (user: User | null) => {
     if (user) {
-      const isAdmin = user.email?.toLowerCase() === 'admin@example.com';
-      const name = user.displayName || 'Player';
-      const needsTeamName = !user.displayName;
+      // Force a reload of the user's profile data from Firebase
+      await user.reload(); 
+      const freshUser = getFirebaseAuth().currentUser;
 
-      setAuthInfo({ 
-        uid: user.uid, 
-        type: isAdmin ? 'admin' : 'user',
-        name: name,
-        needsTeamName: isAdmin ? false : needsTeamName,
-      });
+      if (freshUser) {
+        const isAdmin = freshUser.email?.toLowerCase() === 'admin@example.com';
+        const name = freshUser.displayName || 'Player';
+        const needsTeamName = !freshUser.displayName;
+
+        setAuthInfo({ 
+          uid: freshUser.uid, 
+          type: isAdmin ? 'admin' : 'user',
+          name: name,
+          needsTeamName: isAdmin ? false : needsTeamName,
+        });
+      } else {
+         setAuthInfo(null);
+      }
     } else {
       setAuthInfo(null);
     }
@@ -63,8 +71,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const user = auth.currentUser;
     if (user) {
       await updateProfile(user, { displayName: teamName });
-      // Re-process user to update context state
-      processUser(user);
+      // Re-process user to update context state after setting the name
+      await processUser(user);
+    } else {
+        throw new Error("User not found");
     }
   };
 

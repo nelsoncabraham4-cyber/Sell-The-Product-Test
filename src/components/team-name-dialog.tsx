@@ -48,7 +48,7 @@ export function TeamNameDialog({ isOpen, onOpenChange, onSubmit }: TeamNameDialo
         <DialogHeader>
           <DialogTitle className="font-headline">Choose Your Team Name</DialogTitle>
           <DialogDescription>
-            Welcome! To get started, please enter a name for your team.
+            Welcome! To get started, please enter a name for your team. This cannot be changed later.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

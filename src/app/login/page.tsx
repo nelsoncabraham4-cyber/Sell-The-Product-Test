@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { User, Chrome } from 'lucide-react';
-import { signInWithPopup, type User as FirebaseUser } from 'firebase/auth';
+import { signInWithPopup } from 'firebase/auth';
 import { getFirebaseAuth, GoogleAuthProvider } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 import { TeamNameDialog } from '@/components/team-name-dialog';
@@ -45,6 +45,10 @@ export default function UserLoginPage() {
   };
 
   const handleTeamNameSubmit = async (teamName: string) => {
+    if (!auth) {
+        toast({ title: 'Error', description: 'Authentication not found.', variant: 'destructive' });
+        return;
+    }
     try {
       await setTeamName(teamName);
       setTeamNameDialogOpen(false);
@@ -85,7 +89,11 @@ export default function UserLoginPage() {
       </div>
       <TeamNameDialog
         isOpen={isTeamNameDialogOpen}
-        onOpenChange={setTeamNameDialogOpen}
+        onOpenChange={(open) => {
+            // Prevent closing the dialog by clicking outside
+            if (!open) return;
+            setTeamNameDialogOpen(open);
+        }}
         onSubmit={handleTeamNameSubmit}
       />
     </>
