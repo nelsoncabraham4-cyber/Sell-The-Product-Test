@@ -13,4 +13,5 @@ export interface Sale {
   actualPrice: number;
   profit: number;
   timestamp: number;
+  userId: string;
 }

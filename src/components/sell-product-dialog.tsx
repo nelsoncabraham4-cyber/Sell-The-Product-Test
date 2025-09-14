@@ -59,6 +59,7 @@ export function SellProductDialog({ product, onSale, isOpen, onOpenChange }: Sel
       actualPrice: product.actualPrice,
       profit,
       timestamp: Date.now(),
+      userId: auth.uid,
     };
 
     onSale(sale);

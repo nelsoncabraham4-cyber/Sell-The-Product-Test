@@ -8,25 +8,31 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Shield } from 'lucide-react';
-
-const ADMIN_PREDEFINED_PASSWORD = '4321';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth as firebaseAuth } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 export default function AdminLoginPage() {
   const { login } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@example.com');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== ADMIN_PREDEFINED_PASSWORD) {
+    try {
+      const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+      const user = userCredential.user;
+      login({ type: 'admin', name: 'Admin', uid: user.uid });
+      router.push('/admin/dashboard');
+    } catch (error) {
       toast({
         title: 'Login Failed',
-        description: 'Incorrect admin password.',
+        description: 'Incorrect email or password.',
         variant: 'destructive',
       });
-      return;
     }
-    login({ type: 'admin', name: 'Admin' });
   };
 
   return (
@@ -37,16 +43,28 @@ export default function AdminLoginPage() {
             <Shield className="w-8 h-8 text-secondary-foreground" />
           </div>
           <CardTitle className="font-headline text-3xl">Admin Login</CardTitle>
-          <CardDescription></CardDescription>
+          <CardDescription>Use the account you created in the Firebase Console.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="password">Admin Password</Label>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="admin@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="••••"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
