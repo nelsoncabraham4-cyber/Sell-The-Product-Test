@@ -25,7 +25,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (isLoading) {
-      return; // Wait for auth state to be determined
+      return;
     }
     if (!auth) {
       router.push('/admin/login');

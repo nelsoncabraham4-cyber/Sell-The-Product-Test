@@ -23,7 +23,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (isLoading) {
-      return; // Wait for auth state to be determined
+      return;
     }
     if (!auth) {
       router.push('/login');
