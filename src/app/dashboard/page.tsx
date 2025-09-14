@@ -28,7 +28,7 @@ export default function DashboardPage() {
   const handleSale = (sale: Sale, productId: string) => {
     setSales((prevSales) => [...prevSales, sale]);
     setProducts((prevProducts) =>
-      prevProducts.map((p) => (p.id === productId ? { ...p, isSold: true } : p))
+      prevProducts.map((p) => (p.id === productId ? { ...p, isSold: true, sellingPrice: sale.sellingPrice } : p))
     );
   };
   

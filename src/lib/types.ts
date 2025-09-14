@@ -3,6 +3,7 @@ export interface Product {
   name: string;
   actualPrice: number;
   isSold: boolean;
+  sellingPrice?: number;
 }
 
 export interface Sale {
