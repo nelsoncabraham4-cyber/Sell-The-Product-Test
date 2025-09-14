@@ -70,7 +70,7 @@ export default function ProductTable({ products, onSale, onDelete, isAdmin }: Pr
             ) : (
               <TableRow>
                 <TableCell colSpan={4} className="h-24 text-center">
-                  
+                  No products have been added yet.
                 </TableCell>
               </TableRow>
             )}
