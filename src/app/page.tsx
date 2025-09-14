@@ -27,7 +27,14 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-full py-12">
+    <div className="relative flex flex-col items-center justify-center min-h-full py-12 overflow-hidden">
+       <div
+        aria-hidden="true"
+        className="absolute inset-0 grid grid-cols-2 -space-x-52 opacity-40 transition-opacity duration-500 group-hover:opacity-100 dark:opacity-20"
+      >
+        <div className="h-56 bg-gradient-to-br from-primary to-purple-400 blur-3xl dark:from-blue-700"></div>
+        <div className="h-32 bg-gradient-to-r from-secondary to-green-400 blur-3xl dark:to-emerald-600"></div>
+      </div>
       <div className="text-center mb-12">
         <h1 className="font-headline text-5xl md:text-6xl font-bold text-primary">
           Welcome to Sell The Product
@@ -38,9 +45,9 @@ export default function Home() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
-        <Card className="hover:shadow-xl transition-shadow duration-300">
+        <Card className="hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
           <CardHeader className="items-center text-center">
-            <User className="w-12 h-12 mb-4 text-secondary" />
+            <User className="w-16 h-16 mb-4 text-secondary" />
             <CardTitle className="font-headline text-2xl">For Users</CardTitle>
             <CardDescription>
               {auth?.type === 'user'
@@ -56,9 +63,9 @@ export default function Home() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-xl transition-shadow duration-300">
+        <Card className="hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
           <CardHeader className="items-center text-center">
-            <Shield className="w-12 h-12 mb-4 text-accent" />
+            <Shield className="w-16 h-16 mb-4 text-accent" />
             <CardTitle className="font-headline text-2xl">For Admins</CardTitle>
             <CardDescription>
               {auth?.type === 'admin'
