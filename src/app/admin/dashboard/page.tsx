@@ -11,6 +11,7 @@ import ProductForm from '@/components/product-form';
 import { ClearHistoryButton } from '@/components/clear-history-button';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const initialProducts: Product[] = [];
 const initialSales: Sale[] = [];
@@ -64,16 +65,20 @@ export default function AdminDashboardPage() {
         <p className="text-muted-foreground">Manage products and monitor sales activities.</p>
       </div>
 
-      <ProductForm addProduct={addProduct} />
+      <Tabs defaultValue="dashboard">
+        <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+        </TabsList>
+        <TabsContent value="dashboard" className="space-y-8 mt-8">
+            <ProductForm addProduct={addProduct} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-4">
-            <h2 className="font-headline text-2xl font-bold">Product Management</h2>
-            <ProductTable products={products} onDelete={deleteProduct} isAdmin={true} />
-        </div>
-        <div className="space-y-4">
-            <h2 className="font-headline text-2xl font-bold">Live Leaderboard</h2>
-            <Leaderboard sales={sales} />
+            <div className="grid grid-cols-1">
+                <div className="space-y-4">
+                    <h2 className="font-headline text-2xl font-bold">Product Management</h2>
+                    <ProductTable products={products} onDelete={deleteProduct} isAdmin={true} />
+                </div>
+            </div>
              <Card className="bg-destructive/10 border-destructive">
                 <CardHeader>
                     <CardTitle className="font-headline text-destructive">Danger Zone</CardTitle>
@@ -82,8 +87,11 @@ export default function AdminDashboardPage() {
                     <ClearHistoryButton onClear={clearAllData} />
                 </CardContent>
             </Card>
-        </div>
-      </div>
+        </TabsContent>
+        <TabsContent value="leaderboard" className="mt-8">
+            <Leaderboard sales={sales} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
