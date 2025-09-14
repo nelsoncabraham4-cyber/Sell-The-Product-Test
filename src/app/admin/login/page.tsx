@@ -15,7 +15,7 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('admin@example.com');
+  const [email, setEmail] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +52,6 @@ export default function AdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled
               />
             </div>
             <div className="space-y-2">
