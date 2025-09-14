@@ -29,11 +29,11 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-full py-12">
       <div className="text-center mb-12">
-        <h2 className="text-2xl md:text-3xl text-muted-foreground font-light mb-2">Welcome to</h2>
-        <h1 className="font-headline text-5xl md:text-6xl font-bold tracking-tight text-foreground whitespace-nowrap">
+        <h2 className="text-xl md:text-2xl text-muted-foreground font-light mb-2">Welcome to</h2>
+        <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-foreground whitespace-nowrap">
           Sell The Product
         </h1>
-        <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+        <p className="mt-4 text-md md:text-lg text-muted-foreground max-w-2xl mx-auto">
           The ultimate sales competition where legends are born. Ready to join the game?
         </p>
       </div>
