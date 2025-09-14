@@ -49,7 +49,7 @@ export default function UserLoginPage() {
               <Input
                 id="teamName"
                 type="text"
-                placeholder="e.g., The Winners"
+                placeholder="Name"
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
                 required
