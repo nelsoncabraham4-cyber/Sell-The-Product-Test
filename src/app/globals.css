@@ -4,11 +4,11 @@
 
 @layer base {
   :root {
-    --background: 222 89% 10%; /* Deep Blue */
+    --background: 0 0% 0%; /* Black */
     --foreground: 210 40% 98%;
-    --card: 224 71% 14%;
+    --card: 222 89% 6%; /* Very Dark Blue, almost black */
     --card-foreground: 210 40% 98%;
-    --popover: 222 89% 10%;
+    --popover: 0 0% 0%;
     --popover-foreground: 210 40% 98%;
     --primary: 175 90% 45%; /* Shining Teal */
     --primary-foreground: 180 10% 98%;
@@ -20,8 +20,8 @@
     --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 25%;
-    --input: 217 33% 20%;
+    --border: 217 33% 15%;
+    --input: 217 33% 12%;
     --ring: 175 80% 55%;
     --chart-1: 175 80% 50%;
     --chart-2: 35 95% 65%;
@@ -31,11 +31,11 @@
     --radius: 0.75rem;
   }
   .dark {
-    --background: 222 89% 10%;
+    --background: 0 0% 0%; /* Black */
     --foreground: 210 40% 98%;
-    --card: 224 71% 14%;
+    --card: 222 89% 6%; /* Very Dark Blue, almost black */
     --card-foreground: 210 40% 98%;
-    --popover: 222 89% 10%;
+    --popover: 0 0% 0%;
     --popover-foreground: 210 40% 98%;
     --primary: 175 90% 45%; /* Shining Teal */
     --primary-foreground: 180 10% 98%;
@@ -47,8 +47,8 @@
     --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 25%;
-    --input: 217 33% 20%;
+    --border: 217 33% 15%;
+    --input: 217 33% 12%;
     --ring: 175 80% 55%;
     --chart-1: 175 80% 50%;
     --chart-2: 35 95% 65%;
