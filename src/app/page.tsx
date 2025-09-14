@@ -40,7 +40,7 @@ export default function Home() {
             <CardTitle className="font-headline text-3xl font-bold">For Players</CardTitle>
             <CardDescription>
               {auth?.type === 'user'
-                ? `Welcome back, ${auth.name}! Go to your dashboard.`
+                ? `Welcome back, ${auth.name}`
                 : 'Log in with your team to start selling!'}
             </CardDescription>
           </CardHeader>
