@@ -43,7 +43,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="flex items-center justify-center py-12">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mx-auto bg-secondary rounded-full p-3 w-fit mb-4">
             <Shield className="w-8 h-8 text-secondary-foreground" />
