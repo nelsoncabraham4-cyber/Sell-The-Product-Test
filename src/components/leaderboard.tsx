@@ -80,7 +80,6 @@ export default function Leaderboard({ sales }: LeaderboardProps) {
         ) : (
           <div className="text-center text-muted-foreground py-8">
             <p>No sales recorded yet.</p>
-            <p>The first sale will appear here!</p>
           </div>
         )}
       </CardContent>
