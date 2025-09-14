@@ -27,7 +27,7 @@ export default function Home() {
           Sell The Product
         </h1>
         <p className="mt-4 text-sm text-muted-foreground max-w-2xl mx-auto">
-          The ultimate sales competition.
+          
         </p>
       </div>
 
