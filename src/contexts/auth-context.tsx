@@ -31,16 +31,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user) {
         const isAdmin = user.email?.toLowerCase() === 'admin@example.com';
         
-        // For regular users, try to fetch their name from the Realtime Database
-        // This ensures that if an admin changes their name, it's reflected here.
-        let teamName = user.displayName;
-        if (!isAdmin) {
+        let teamName: string | null = null;
+        
+        if (isAdmin) {
+          teamName = user.displayName;
+        } else {
+          // For regular users, the Realtime Database is the source of truth.
           const db = getFirebaseDb();
           const userRef = ref(db, `users/${user.uid}`);
           const snapshot = await get(userRef);
+          
+          // If a user record exists in the DB, use that name.
           if (snapshot.exists() && snapshot.val().name) {
             teamName = snapshot.val().name;
           }
+          // If the record doesn't exist, 'teamName' remains null, 
+          // forcing the user to the set-team-name page, even if `user.displayName` has an old value.
         }
 
         setAuthInfo({ 
