@@ -28,9 +28,9 @@ export default function SalesFeed({ sales }: SalesFeedProps) {
                     <TableRow>
                     <TableHead>Team</TableHead>
                     <TableHead>Product</TableHead>
-                    <TableHead>Sale Price</TableHead>
-                    <TableHead>Actual Price</TableHead>
-                    <TableHead className="text-right">Profit</TableHead>
+                    <TableHead>Sale Price (₹)</TableHead>
+                    <TableHead>Actual Price (₹)</TableHead>
+                    <TableHead className="text-right">Profit (₹)</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -39,10 +39,10 @@ export default function SalesFeed({ sales }: SalesFeedProps) {
                         <TableRow key={sale.id}>
                             <TableCell className="font-medium">{sale.teamName}</TableCell>
                             <TableCell>{sale.productName}</TableCell>
-                            <TableCell>${sale.sellingPrice.toFixed(2)}</TableCell>
-                            <TableCell>${sale.actualPrice.toFixed(2)}</TableCell>
+                            <TableCell>₹{sale.sellingPrice.toFixed(2)}</TableCell>
+                            <TableCell>₹{sale.actualPrice.toFixed(2)}</TableCell>
                             <TableCell className="text-right font-semibold text-green-600 dark:text-green-400">
-                                ${sale.profit.toFixed(2)}
+                                ₹{sale.profit.toFixed(2)}
                             </TableCell>
                         </TableRow>
                     ))

@@ -57,7 +57,7 @@ export default function Leaderboard({ sales }: LeaderboardProps) {
               <TableRow>
                 <TableHead className="w-[50px] text-center">Rank</TableHead>
                 <TableHead>Team</TableHead>
-                <TableHead className="text-right">Total Profit</TableHead>
+                <TableHead className="text-right">Total Profit (₹)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -71,7 +71,7 @@ export default function Leaderboard({ sales }: LeaderboardProps) {
                   </TableCell>
                   <TableCell className="font-medium">{team.name}</TableCell>
                   <TableCell className="text-right font-semibold text-green-600">
-                    ${team.profit.toFixed(2)}
+                    ₹{team.profit.toFixed(2)}
                   </TableCell>
                 </TableRow>
               ))}

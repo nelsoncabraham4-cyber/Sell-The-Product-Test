@@ -66,7 +66,7 @@ export function SellProductDialog({ product, onSale, isOpen, onOpenChange }: Sel
     onOpenChange(false);
     toast({
       title: 'Product Sold!',
-      description: `You sold "${product.name}" for $${price.toFixed(2)}. Profit: $${profit.toFixed(2)}.`,
+      description: `You sold "${product.name}" for ₹${price.toFixed(2)}. Profit: ₹${profit.toFixed(2)}.`,
     });
   };
 
@@ -76,13 +76,13 @@ export function SellProductDialog({ product, onSale, isOpen, onOpenChange }: Sel
         <DialogHeader>
           <DialogTitle className="font-headline">Sell "{product.name}"</DialogTitle>
           <DialogDescription>
-            The actual price is ${product.actualPrice.toFixed(2)}. Enter the price you sold it for.
+            The actual price is ₹{product.actualPrice.toFixed(2)}. Enter the price you sold it for.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="selling-price" className="text-right">
-              Selling Price
+              Selling Price (₹)
             </Label>
             <Input
               id="selling-price"
@@ -90,7 +90,7 @@ export function SellProductDialog({ product, onSale, isOpen, onOpenChange }: Sel
               value={sellingPrice}
               onChange={(e) => setSellingPrice(e.target.value)}
               className="col-span-3"
-              placeholder="e.g., 2550.00"
+              placeholder="e.g., 120000.00"
               min="0"
               step="0.01"
             />

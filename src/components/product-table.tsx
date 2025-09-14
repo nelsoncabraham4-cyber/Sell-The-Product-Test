@@ -32,7 +32,7 @@ export default function ProductTable({ products, onSale, onDelete, isAdmin }: Pr
           <TableHeader>
             <TableRow>
               <TableHead>Product Name</TableHead>
-              <TableHead>Actual Price</TableHead>
+              <TableHead>Actual Price (₹)</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
@@ -45,7 +45,7 @@ export default function ProductTable({ products, onSale, onDelete, isAdmin }: Pr
                   className="transition-colors duration-500"
                 >
                   <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>${product.actualPrice.toFixed(2)}</TableCell>
+                  <TableCell>₹{product.actualPrice.toFixed(2)}</TableCell>
                   <TableCell>
                     <Badge variant="outline">Available</Badge>
                   </TableCell>

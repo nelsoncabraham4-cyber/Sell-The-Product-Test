@@ -79,9 +79,9 @@ export default function DashboardPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Product Name</TableHead>
-                      <TableHead>Actual Price</TableHead>
-                      <TableHead>Your Selling Price</TableHead>
-                      <TableHead className="text-right">Your Profit</TableHead>
+                      <TableHead>Actual Price (₹)</TableHead>
+                      <TableHead>Your Selling Price (₹)</TableHead>
+                      <TableHead className="text-right">Your Profit (₹)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -89,10 +89,10 @@ export default function DashboardPage() {
                       userSales.map((sale) => (
                         <TableRow key={sale.id}>
                           <TableCell className="font-medium">{sale.productName}</TableCell>
-                          <TableCell>${sale.actualPrice.toFixed(2)}</TableCell>
-                          <TableCell>${sale.sellingPrice.toFixed(2)}</TableCell>
+                          <TableCell>₹{sale.actualPrice.toFixed(2)}</TableCell>
+                          <TableCell>₹{sale.sellingPrice.toFixed(2)}</TableCell>
                           <TableCell className="text-right font-semibold text-green-600 dark:text-green-400">
-                            ${sale.profit.toFixed(2)}
+                            ₹{sale.profit.toFixed(2)}
                           </TableCell>
                         </TableRow>
                       ))

@@ -64,11 +64,11 @@ export default function ProductForm({ addProduct }: ProductFormProps) {
             />
           </div>
           <div className="w-full md:w-auto space-y-2">
-            <Label htmlFor="actualPrice">Actual Price ($)</Label>
+            <Label htmlFor="actualPrice">Actual Price (₹)</Label>
             <Input
               id="actualPrice"
               type="number"
-              placeholder="e.g., 1999.99"
+              placeholder="e.g., 99999.99"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               min="0.01"
