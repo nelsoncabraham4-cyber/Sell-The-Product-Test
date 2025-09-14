@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getFirebaseDb } from '@/lib/firebase';
-import { ref, onValue, push, remove, set } from 'firebase/database';
+import { ref, onValue, push, remove, set, update } from 'firebase/database';
 
 export default function AdminDashboardPage() {
   const { auth, isLoading } = useAuth();
@@ -73,6 +73,25 @@ export default function AdminDashboardPage() {
     })
   };
 
+  const updateSale = (saleId: string, newSellingPrice: number, newProfit: number) => {
+    const db = getFirebaseDb();
+    const saleRef = ref(db, `sales/${saleId}`);
+    update(saleRef, { sellingPrice: newSellingPrice, profit: newProfit })
+      .then(() => {
+        toast({
+          title: 'Sale Updated',
+          description: 'The sale details have been successfully updated.',
+        });
+      })
+      .catch((error) => {
+        toast({
+          title: 'Update Failed',
+          description: `An error occurred: ${error.message}`,
+          variant: 'destructive',
+        });
+      });
+  };
+
   const clearAllData = () => {
     const db = getFirebaseDb();
     const productsRef = ref(db, 'products');
@@ -125,7 +144,7 @@ export default function AdminDashboardPage() {
             <SalesFeed sales={sales} />
         </TabsContent>
         <TabsContent value="leaderboard" className="mt-8">
-            <Leaderboard sales={sales} isAdmin={true} />
+            <Leaderboard sales={sales} isAdmin={true} onUpdateSale={updateSale} />
         </TabsContent>
       </Tabs>
     </div>

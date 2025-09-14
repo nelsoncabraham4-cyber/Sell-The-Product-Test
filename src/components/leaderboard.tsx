@@ -10,6 +10,7 @@ import { TeamSalesDialog } from './team-sales-dialog';
 interface LeaderboardProps {
   sales: Sale[];
   isAdmin?: boolean;
+  onUpdateSale?: (saleId: string, newSellingPrice: number, newProfit: number) => void;
 }
 
 interface TeamStats {
@@ -18,7 +19,7 @@ interface TeamStats {
   lastSaleTimestamp: number;
 }
 
-export default function Leaderboard({ sales, isAdmin = false }: LeaderboardProps) {
+export default function Leaderboard({ sales, isAdmin = false, onUpdateSale }: LeaderboardProps) {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 
   const teamStats = sales.reduce((acc, sale) => {
@@ -105,7 +106,7 @@ export default function Leaderboard({ sales, isAdmin = false }: LeaderboardProps
           )}
         </CardContent>
       </Card>
-      {selectedTeam && isAdmin && (
+      {selectedTeam && isAdmin && onUpdateSale && (
         <TeamSalesDialog
           teamName={selectedTeam}
           sales={teamSales}
@@ -115,6 +116,7 @@ export default function Leaderboard({ sales, isAdmin = false }: LeaderboardProps
               setSelectedTeam(null);
             }
           }}
+          onUpdateSale={onUpdateSale}
         />
       )}
     </>
