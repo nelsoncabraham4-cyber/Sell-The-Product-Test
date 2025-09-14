@@ -1,20 +1,22 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
+import { onAuthStateChanged, signOut, updateProfile, type User } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebase';
 
 type AuthInfo = {
   uid: string;
   type: 'user' | 'admin';
   name: string;
+  needsTeamName: boolean;
 };
 
 interface AuthContextType {
   auth: AuthInfo | null;
   isLoading: boolean;
   logout: () => void;
+  setTeamName: (teamName: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,28 +26,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  const processUser = useCallback((user: User | null) => {
+    if (user) {
+      const isAdmin = user.email?.toLowerCase() === 'admin@example.com';
+      const name = user.displayName || 'Player';
+      const needsTeamName = !user.displayName;
+
+      setAuthInfo({ 
+        uid: user.uid, 
+        type: isAdmin ? 'admin' : 'user',
+        name: name,
+        needsTeamName: isAdmin ? false : needsTeamName,
+      });
+    } else {
+      setAuthInfo(null);
+    }
+    setIsLoading(false);
+  }, []);
+
   useEffect(() => {
     const auth = getFirebaseAuth();
-    const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
-      if (user) {
-        // This is a simplified way to determine admin.
-        // In a real app, you'd use custom claims or check a database role.
-        const isAdmin = user.email?.toLowerCase() === 'admin@example.com';
-        const name = isAdmin ? 'Admin' : (user.displayName || 'User');
-        
-        setAuthInfo({ 
-          uid: user.uid, 
-          type: isAdmin ? 'admin' : 'user',
-          name: name
-        });
-      } else {
-        setAuthInfo(null);
-      }
-      setIsLoading(false);
-    });
-
+    const unsubscribe = onAuthStateChanged(auth, processUser);
     return () => unsubscribe();
-  }, []);
+  }, [processUser]);
 
   const logout = () => {
     const auth = getFirebaseAuth();
@@ -55,8 +58,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const setTeamName = async (teamName: string) => {
+    const auth = getFirebaseAuth();
+    const user = auth.currentUser;
+    if (user) {
+      await updateProfile(user, { displayName: teamName });
+      // Re-process user to update context state
+      processUser(user);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ auth: authInfo, isLoading, logout }}>
+    <AuthContext.Provider value={{ auth: authInfo, isLoading, logout, setTeamName }}>
       {children}
     </AuthContext.Provider>
   );

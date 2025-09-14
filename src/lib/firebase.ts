@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getDatabase } from "firebase/database";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -24,6 +24,4 @@ export function getFirebaseDb() {
     return getDatabase(getFirebaseApp());
 }
 
-export const app = getFirebaseApp();
-export const db = getFirebaseDb();
-export const auth = getFirebaseAuth();
+export { GoogleAuthProvider };
