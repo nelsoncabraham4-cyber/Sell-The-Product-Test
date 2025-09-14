@@ -36,7 +36,7 @@ export default function PlayerManagement({ players, onEdit, onDelete }: PlayerMa
 
   const handleEditClick = (player: Player) => {
     setPlayerToEdit(player);
-    setNewTeamName(player.name);
+    setNewTeamName(player.name || '');
   };
 
   const handleConfirmEdit = () => {
@@ -69,7 +69,7 @@ export default function PlayerManagement({ players, onEdit, onDelete }: PlayerMa
                 {players.length > 0 ? (
                   players.map((player) => (
                     <TableRow key={player.uid}>
-                      <TableCell className="font-medium">{player.name}</TableCell>
+                      <TableCell className="font-medium">{player.name || <span className="text-muted-foreground italic">Not Set</span>}</TableCell>
                       <TableCell>{player.email}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -96,7 +96,7 @@ export default function PlayerManagement({ players, onEdit, onDelete }: PlayerMa
                 ) : (
                   <TableRow>
                     <TableCell colSpan={3} className="h-24 text-center">
-                      No players have set a team name yet.
+                      No players have registered yet.
                     </TableCell>
                   </TableRow>
                 )}
@@ -112,7 +112,7 @@ export default function PlayerManagement({ players, onEdit, onDelete }: PlayerMa
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove <span className="font-bold">{playerToDelete?.name} ({playerToDelete?.email})</span> and all of their associated sales data. This action cannot be undone.
+              This will permanently remove <span className="font-bold">{playerToDelete?.name || playerToDelete?.email}</span> and all of their associated sales data. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
