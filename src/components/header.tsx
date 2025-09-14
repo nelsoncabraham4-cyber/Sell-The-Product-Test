@@ -34,7 +34,7 @@ const Header = () => {
           </span>
         </Link>
 
-        {isClient && auth && (
+        {isClient && auth && auth.name && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
