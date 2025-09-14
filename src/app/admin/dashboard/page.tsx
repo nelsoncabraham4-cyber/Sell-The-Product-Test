@@ -125,7 +125,7 @@ export default function AdminDashboardPage() {
             <SalesFeed sales={sales} />
         </TabsContent>
         <TabsContent value="leaderboard" className="mt-8">
-            <Leaderboard sales={sales} />
+            <Leaderboard sales={sales} isAdmin={true} />
         </TabsContent>
       </Tabs>
     </div>

@@ -1,12 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import type { Sale } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Crown, Trophy } from 'lucide-react';
+import { TeamSalesDialog } from './team-sales-dialog';
 
 interface LeaderboardProps {
   sales: Sale[];
+  isAdmin?: boolean;
 }
 
 interface TeamStats {
@@ -15,7 +18,9 @@ interface TeamStats {
   lastSaleTimestamp: number;
 }
 
-export default function Leaderboard({ sales }: LeaderboardProps) {
+export default function Leaderboard({ sales, isAdmin = false }: LeaderboardProps) {
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+
   const teamStats = sales.reduce((acc, sale) => {
     if (!acc[sale.teamName]) {
       acc[sale.teamName] = { name: sale.teamName, profit: 0, lastSaleTimestamp: 0 };
@@ -41,48 +46,77 @@ export default function Leaderboard({ sales }: LeaderboardProps) {
     return 'text-muted-foreground';
   };
 
+  const handleRowClick = (teamName: string) => {
+    if (isAdmin) {
+      setSelectedTeam(teamName);
+    }
+  };
+
+  const teamSales = sales.filter(sale => sale.teamName === selectedTeam);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2">
-          <Trophy />
-          Leaderboard
-        </CardTitle>
-        <CardDescription>Teams ranked by total profit.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {sortedTeams.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px] text-center">Rank</TableHead>
-                <TableHead>Team</TableHead>
-                <TableHead className="text-right">Total Profit (₹)</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedTeams.map((team, index) => (
-                <TableRow key={team.name} className={index === 0 ? 'bg-secondary' : ''}>
-                  <TableCell className="font-medium text-center">
-                    <div className={`flex justify-center items-center ${getRankColor(index)}`}>
-                      {index === 0 && <Crown className="w-5 h-5 mr-1" />}
-                      {index + 1}
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{team.name}</TableCell>
-                  <TableCell className="text-right font-semibold text-green-600">
-                    ₹{team.profit.toFixed(2)}
-                  </TableCell>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline flex items-center gap-2">
+            <Trophy />
+            Leaderboard
+          </CardTitle>
+          <CardDescription>
+            Teams ranked by total profit.
+            {isAdmin && " Click on a team to view their sales."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {sortedTeams.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50px] text-center">Rank</TableHead>
+                  <TableHead>Team</TableHead>
+                  <TableHead className="text-right">Total Profit (₹)</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <div className="text-center text-muted-foreground py-8">
-            
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              </TableHeader>
+              <TableBody>
+                {sortedTeams.map((team, index) => (
+                  <TableRow
+                    key={team.name}
+                    className={`${index === 0 ? 'bg-secondary' : ''} ${isAdmin ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                    onClick={() => handleRowClick(team.name)}
+                  >
+                    <TableCell className="font-medium text-center">
+                      <div className={`flex justify-center items-center ${getRankColor(index)}`}>
+                        {index === 0 && <Crown className="w-5 h-5 mr-1" />}
+                        {index + 1}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">{team.name}</TableCell>
+                    <TableCell className="text-right font-semibold text-green-600">
+                      ₹{team.profit.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center text-muted-foreground py-8">
+              No sales data available to build the leaderboard.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      {selectedTeam && isAdmin && (
+        <TeamSalesDialog
+          teamName={selectedTeam}
+          sales={teamSales}
+          isOpen={!!selectedTeam}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedTeam(null);
+            }
+          }}
+        />
+      )}
+    </>
   );
 }

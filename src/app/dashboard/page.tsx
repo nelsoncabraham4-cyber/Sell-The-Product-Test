@@ -140,7 +140,7 @@ export default function DashboardPage() {
           </Card>
         </TabsContent>
         <TabsContent value="leaderboard" className="mt-8">
-          <Leaderboard sales={sales} />
+          <Leaderboard sales={sales} isAdmin={false} />
         </TabsContent>
       </Tabs>
     </div>
