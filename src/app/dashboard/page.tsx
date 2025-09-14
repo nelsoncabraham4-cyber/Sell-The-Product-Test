@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ShoppingBag } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getFirebaseDb } from '@/lib/firebase';
-import { ref, onValue, push, remove } from 'firebase/database';
+import { ref, onValue, push } from 'firebase/database';
 
 
 export default function DashboardPage() {
@@ -61,9 +61,6 @@ export default function DashboardPage() {
     const db = getFirebaseDb();
     const salesRef = ref(db, 'sales');
     push(salesRef, sale);
-    
-    const productRef = ref(db, `products/${sale.productId}`);
-    remove(productRef);
   };
   
   const userSales = useMemo(() => {
