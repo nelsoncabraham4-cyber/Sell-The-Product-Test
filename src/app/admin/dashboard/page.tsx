@@ -143,7 +143,7 @@ export default function AdminDashboardPage() {
     
     toast({
         title: 'Player Removed',
-        description: 'The player and all their sales data have been removed.',
+        description: 'The player and all their sales data have been removed. They will need to set a new team name if they log in again.',
         variant: 'destructive',
     });
   };
