@@ -8,6 +8,7 @@ import type { Product, Sale } from '@/lib/types';
 import ProductTable from '@/components/product-table';
 import Leaderboard from '@/components/leaderboard';
 import ProductForm from '@/components/product-form';
+import SalesFeed from '@/components/sales-feed';
 import { ClearHistoryButton } from '@/components/clear-history-button';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,8 +67,9 @@ export default function AdminDashboardPage() {
       </div>
 
       <Tabs defaultValue="dashboard">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="sales">Sales Feed</TabsTrigger>
             <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard" className="space-y-8 mt-8">
@@ -87,6 +89,9 @@ export default function AdminDashboardPage() {
                     <ClearHistoryButton onClear={clearAllData} />
                 </CardContent>
             </Card>
+        </TabsContent>
+        <TabsContent value="sales" className="mt-8">
+            <SalesFeed sales={sales} />
         </TabsContent>
         <TabsContent value="leaderboard" className="mt-8">
             <Leaderboard sales={sales} />
