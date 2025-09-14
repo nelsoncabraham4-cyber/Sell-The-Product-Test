@@ -79,7 +79,7 @@ export default function Leaderboard({ sales }: LeaderboardProps) {
           </Table>
         ) : (
           <div className="text-center text-muted-foreground py-8">
-            <p>No sales recorded yet.</p>
+            
           </div>
         )}
       </CardContent>
