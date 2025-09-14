@@ -12,8 +12,8 @@ import { ClearHistoryButton } from '@/components/clear-history-button';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { db } from '@/lib/firebase';
-import { ref, onValue, push, remove, set } from 'firebase/database';
+import { getFirebaseDb } from '@/lib/firebase';
+import { ref, onValue, push, remove, set, update } from 'firebase/database';
 
 export default function AdminDashboardPage() {
   const { auth, isLoading } = useAuth();
@@ -24,7 +24,9 @@ export default function AdminDashboardPage() {
   const [sales, setSales] = useState<Sale[]>([]);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading) {
+      return;
+    }
     if (!auth) {
       router.push('/admin/login');
     } else if (auth.type !== 'admin') {
@@ -34,6 +36,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (!auth) return;
+    const db = getFirebaseDb();
     const productsRef = ref(db, 'products');
     const unsubscribeProducts = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
@@ -55,11 +58,13 @@ export default function AdminDashboardPage() {
   }, [auth]);
 
   const addProduct = (product: Omit<Product, 'id'>) => {
+    const db = getFirebaseDb();
     const productsRef = ref(db, 'products');
     push(productsRef, product);
   };
 
   const deleteProduct = (productId: string) => {
+    const db = getFirebaseDb();
     const productRef = ref(db, `products/${productId}`);
     remove(productRef);
     toast({
@@ -68,7 +73,27 @@ export default function AdminDashboardPage() {
     })
   };
 
+  const updateSale = (saleId: string, newSellingPrice: number, newProfit: number) => {
+    const db = getFirebaseDb();
+    const saleRef = ref(db, `sales/${saleId}`);
+    update(saleRef, { sellingPrice: newSellingPrice, profit: newProfit })
+      .then(() => {
+        toast({
+          title: 'Sale Updated',
+          description: 'The sale details have been successfully updated.',
+        });
+      })
+      .catch((error) => {
+        toast({
+          title: 'Update Failed',
+          description: `An error occurred: ${error.message}`,
+          variant: 'destructive',
+        });
+      });
+  };
+
   const clearAllData = () => {
+    const db = getFirebaseDb();
     const productsRef = ref(db, 'products');
     set(productsRef, null);
     const salesRef = ref(db, 'sales');
@@ -119,7 +144,7 @@ export default function AdminDashboardPage() {
             <SalesFeed sales={sales} />
         </TabsContent>
         <TabsContent value="leaderboard" className="mt-8">
-            <Leaderboard sales={sales} />
+            <Leaderboard sales={sales} isAdmin={true} onUpdateSale={updateSale} />
         </TabsContent>
       </Tabs>
     </div>

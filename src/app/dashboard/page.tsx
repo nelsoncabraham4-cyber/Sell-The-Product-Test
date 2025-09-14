@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShoppingBag } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import { ref, onValue, push, remove } from 'firebase/database';
 
 
@@ -22,16 +22,21 @@ export default function DashboardPage() {
   const [sales, setSales] = useState<Sale[]>([]);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading) {
+      return;
+    }
     if (!auth) {
       router.push('/login');
-    } else if (auth.type !== 'user') {
+    } else if (auth.type === 'admin') {
       router.push('/admin/dashboard');
+    } else if (auth.type === 'user' && !auth.name) {
+      router.push('/set-team-name');
     }
   }, [auth, isLoading, router]);
 
   useEffect(() => {
     if (!auth) return;
+    const db = getFirebaseDb();
     const productsRef = ref(db, 'products');
     const unsubscribeProducts = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
@@ -53,6 +58,7 @@ export default function DashboardPage() {
   }, [auth]);
 
   const handleSale = (sale: Omit<Sale, 'id'>) => {
+    const db = getFirebaseDb();
     const salesRef = ref(db, 'sales');
     push(salesRef, sale);
     
@@ -67,7 +73,7 @@ export default function DashboardPage() {
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [sales, auth]);
 
-  if (isLoading || !auth || auth.type !== 'user') {
+  if (isLoading || !auth || auth.type !== 'user' || !auth.name) {
     return <div className="text-center p-8">Redirecting...</div>;
   }
 
@@ -123,7 +129,7 @@ export default function DashboardPage() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center">
-                          
+                          No sales yet. Go make one!
                         </TableCell>
                       </TableRow>
                     )}
@@ -134,7 +140,7 @@ export default function DashboardPage() {
           </Card>
         </TabsContent>
         <TabsContent value="leaderboard" className="mt-8">
-          <Leaderboard sales={sales} />
+          <Leaderboard sales={sales} isAdmin={false} />
         </TabsContent>
       </Tabs>
     </div>
