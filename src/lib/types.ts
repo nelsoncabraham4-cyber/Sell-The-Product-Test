@@ -15,3 +15,9 @@ export interface Sale {
   timestamp: number;
   userId: string;
 }
+
+export interface Player {
+  uid: string;
+  name: string;
+  email: string;
+}

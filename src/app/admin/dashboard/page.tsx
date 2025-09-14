@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import type { Product, Sale } from '@/lib/types';
+import type { Product, Sale, Player } from '@/lib/types';
 import ProductTable from '@/components/product-table';
 import Leaderboard from '@/components/leaderboard';
 import ProductForm from '@/components/product-form';
@@ -13,7 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getFirebaseDb } from '@/lib/firebase';
-import { ref, onValue, push, remove, set, update } from 'firebase/database';
+import { ref, onValue, push, remove, set, update, query, orderByChild, equalTo, get } from 'firebase/database';
+import PlayerManagement from '@/components/player-management';
 
 export default function AdminDashboardPage() {
   const { auth, isLoading } = useAuth();
@@ -22,6 +23,7 @@ export default function AdminDashboardPage() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
 
   useEffect(() => {
     if (isLoading) {
@@ -37,6 +39,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!auth) return;
     const db = getFirebaseDb();
+    
     const productsRef = ref(db, 'products');
     const unsubscribeProducts = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
@@ -51,9 +54,17 @@ export default function AdminDashboardPage() {
       setSales(loadedSales);
     });
 
+    const usersRef = ref(db, 'users');
+    const unsubscribeUsers = onValue(usersRef, (snapshot) => {
+        const data = snapshot.val();
+        const loadedPlayers: Player[] = data ? Object.entries(data).map(([uid, value]) => ({ uid, ...(value as Omit<Player, 'uid'>) })) : [];
+        setPlayers(loadedPlayers);
+    });
+
     return () => {
       unsubscribeProducts();
       unsubscribeSales();
+      unsubscribeUsers();
     };
   }, [auth]);
 
@@ -92,16 +103,61 @@ export default function AdminDashboardPage() {
       });
   };
 
+  const updatePlayerTeamName = (uid: string, newTeamName: string) => {
+    const db = getFirebaseDb();
+    const userRef = ref(db, `users/${uid}`);
+    update(userRef, { name: newTeamName })
+      .then(() => {
+        toast({
+          title: 'Player Updated',
+          description: "The player's team name has been successfully updated.",
+        });
+      })
+      .catch((error) => {
+        toast({
+          title: 'Update Failed',
+          description: `An error occurred: ${error.message}`,
+          variant: 'destructive',
+        });
+      });
+  };
+
+  const deletePlayer = async (uid: string) => {
+    const db = getFirebaseDb();
+    
+    // 1. Remove user from 'users' node
+    const userRef = ref(db, `users/${uid}`);
+    await remove(userRef);
+
+    // 2. Find and remove all sales by that user
+    const salesRef = ref(db, 'sales');
+    const salesQuery = query(salesRef, orderByChild('userId'), equalTo(uid));
+    const snapshot = await get(salesQuery);
+    if (snapshot.exists()) {
+        const updates: Record<string, null> = {};
+        snapshot.forEach((childSnapshot) => {
+            updates[childSnapshot.key!] = null;
+        });
+        await update(ref(db, 'sales'), updates);
+    }
+    
+    toast({
+        title: 'Player Removed',
+        description: 'The player and all their sales data have been removed.',
+        variant: 'destructive',
+    });
+  };
+
+
   const clearAllData = () => {
     const db = getFirebaseDb();
-    const productsRef = ref(db, 'products');
-    set(productsRef, null);
-    const salesRef = ref(db, 'sales');
-    set(salesRef, null);
+    set(ref(db, 'products'), null);
+    set(ref(db, 'sales'), null);
+    set(ref(db, 'users'), null);
     
     toast({
       title: 'Data Cleared',
-      description: 'All products and sales data have been permanently deleted.',
+      description: 'All products, sales, and user data have been permanently deleted.',
       variant: 'destructive'
     });
   };
@@ -117,8 +173,9 @@ export default function AdminDashboardPage() {
       </div>
 
       <Tabs defaultValue="dashboard">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="players">Players</TabsTrigger>
             <TabsTrigger value="sales">Sales Feed</TabsTrigger>
             <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
         </TabsList>
@@ -139,6 +196,13 @@ export default function AdminDashboardPage() {
                     <ClearHistoryButton onClear={clearAllData} />
                 </CardContent>
             </Card>
+        </TabsContent>
+        <TabsContent value="players" className="mt-8">
+            <PlayerManagement 
+                players={players} 
+                onEdit={updatePlayerTeamName} 
+                onDelete={deletePlayer} 
+            />
         </TabsContent>
         <TabsContent value="sales" className="mt-8">
             <SalesFeed sales={sales} />

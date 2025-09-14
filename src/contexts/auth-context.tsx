@@ -3,7 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, signOut, updateProfile, type User } from 'firebase/auth';
-import { getFirebaseAuth } from '@/lib/firebase';
+import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
+import { ref, set } from 'firebase/database';
 
 type AuthInfo = {
   uid: string;
@@ -68,6 +69,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const user = auth.currentUser;
     if (user) {
       await updateProfile(user, { displayName: teamName });
+
+      // Also save user info to the Realtime Database for admin viewing
+      const db = getFirebaseDb();
+      const userRef = ref(db, 'users/' + user.uid);
+      await set(userRef, {
+        name: teamName,
+        email: user.email,
+      });
+
       // After updating, re-process the user to update the context state
       await processUser(user); 
     } else {
