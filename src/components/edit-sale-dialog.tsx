@@ -19,7 +19,7 @@ interface EditSaleDialogProps {
   sale: Sale;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdate: (saleId: string, newSellingPrice: number) => void;
+  onUpdate: (saleId: string, newSellingPrice: number, newProfit: number) => void;
 }
 
 export function EditSaleDialog({ sale, isOpen, onOpenChange, onUpdate }: EditSaleDialogProps) {
@@ -42,8 +42,8 @@ export function EditSaleDialog({ sale, isOpen, onOpenChange, onUpdate }: EditSal
   }, [sellingPrice, sale.actualPrice]);
 
   const handleUpdate = () => {
-    const price = parseFloat(sellingPrice);
-    if (isNaN(price) || price < 0) {
+    const newSellingPrice = parseFloat(sellingPrice);
+    if (isNaN(newSellingPrice) || newSellingPrice < 0) {
       toast({
         title: 'Invalid Price',
         description: 'Please enter a valid positive selling price.',
@@ -51,8 +51,8 @@ export function EditSaleDialog({ sale, isOpen, onOpenChange, onUpdate }: EditSal
       });
       return;
     }
-
-    onUpdate(sale.id, price);
+    const newProfit = newSellingPrice - sale.actualPrice;
+    onUpdate(sale.id, newSellingPrice, newProfit);
     onOpenChange(false);
   };
 
