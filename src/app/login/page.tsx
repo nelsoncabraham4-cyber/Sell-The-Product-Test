@@ -6,39 +6,46 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { User, Chrome } from 'lucide-react';
-import { signInWithPopup } from 'firebase/auth';
-import { getFirebaseAuth, GoogleAuthProvider } from '@/lib/firebase';
+import { signInAnonymously } from 'firebase/auth';
+import { getFirebaseAuth } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function UserLoginPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { auth, isLoading } = useAuth();
+  const { auth, isLoading, setTeamName } = useAuth();
+  const [name, setName] = useState('');
 
   useEffect(() => {
-    if (!isLoading && auth) {
-      if (auth.needsTeamName) {
-        router.push('/create-team');
-      } else if (auth.type === 'user') {
-        router.push('/dashboard');
-      }
+    if (!isLoading && auth && auth.type === 'user') {
+      router.push('/dashboard');
     }
   }, [auth, isLoading, router]);
 
-  const handleGoogleLogin = async () => {
-    const auth = getFirebaseAuth();
-    const provider = new GoogleAuthProvider();
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+        toast({
+            title: 'Team name is required',
+            description: 'Please enter a team name to continue.',
+            variant: 'destructive'
+        });
+        return;
+    }
+
+    const firebaseAuth = getFirebaseAuth();
     try {
-      await signInWithPopup(auth, provider);
-      // Auth state will be handled by onAuthStateChanged in AuthProvider
+      const userCredential = await signInAnonymously(firebaseAuth);
+      await setTeamName(name);
+      router.push('/dashboard');
     } catch (error: any) {
-      if (error.code !== 'auth/popup-closed-by-user') {
         toast({
           title: 'Login Failed',
-          description: error.message || "An unexpected error occurred with Google Sign-In.",
+          description: error.message || "An unexpected error occurred during sign-in.",
           variant: 'destructive',
         });
-      }
     }
   };
   
@@ -51,15 +58,25 @@ export default function UserLoginPage() {
               <User className="w-8 h-8 text-primary-foreground" />
             </div>
             <CardTitle className="font-headline text-3xl">Player Login</CardTitle>
-            <CardDescription>Sign in with your Google account to start playing.</CardDescription>
+            <CardDescription>Enter your team name to start playing.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              <Button onClick={handleGoogleLogin} className="w-full" size="lg">
-                <Chrome className="mr-2" />
-                Sign in with Google
+            <form onSubmit={handleLogin} className="space-y-6">
+               <div className="space-y-2">
+                <Label htmlFor="teamName">Team Name</Label>
+                <Input
+                    id="teamName"
+                    type="text"
+                    placeholder="e.g., The Winners"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                />
+                </div>
+              <Button type="submit" className="w-full" size="lg">
+                Enter as Player
               </Button>
-            </div>
+            </form>
           </CardContent>
         </Card>
       </div>

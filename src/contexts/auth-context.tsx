@@ -9,7 +9,6 @@ type AuthInfo = {
   uid: string;
   type: 'user' | 'admin';
   name: string;
-  needsTeamName: boolean;
 };
 
 interface AuthContextType {
@@ -28,20 +27,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const processUser = useCallback(async (user: User | null) => {
     if (user) {
-      // Force a reload of the user's profile data from Firebase
       await user.reload(); 
       const freshUser = getFirebaseAuth().currentUser;
 
       if (freshUser) {
         const isAdmin = freshUser.email?.toLowerCase() === 'admin@example.com';
         const name = freshUser.displayName || 'Player';
-        const needsTeamName = !freshUser.displayName;
-
+        
         setAuthInfo({ 
           uid: freshUser.uid, 
           type: isAdmin ? 'admin' : 'user',
-          name: name,
-          needsTeamName: isAdmin ? false : needsTeamName,
+          name: name
         });
       } else {
          setAuthInfo(null);
@@ -71,7 +67,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const user = auth.currentUser;
     if (user) {
       await updateProfile(user, { displayName: teamName });
-      // Re-process user to update context state after setting the name
       await processUser(user);
     } else {
         throw new Error("User not found");
