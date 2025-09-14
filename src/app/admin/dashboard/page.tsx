@@ -31,8 +31,8 @@ export default function AdminDashboardPage() {
     }
   }, [auth, router]);
 
-  const addProduct = (product: Product) => {
-    setProducts((prev) => [...prev, product]);
+  const addProduct = (product: Omit<Product, 'id'>) => {
+    setProducts((prev) => [...prev, { ...product, id: new Date().toISOString() }]);
   };
 
   const deleteProduct = (productId: string) => {

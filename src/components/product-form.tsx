@@ -10,7 +10,7 @@ import type { Product } from '@/lib/types';
 import { PlusCircle } from 'lucide-react';
 
 interface ProductFormProps {
-  addProduct: (product: Product) => void;
+  addProduct: (product: Omit<Product, 'id'>) => void;
 }
 
 export default function ProductForm({ addProduct }: ProductFormProps) {
@@ -30,14 +30,11 @@ export default function ProductForm({ addProduct }: ProductFormProps) {
       return;
     }
 
-    const newProduct: Product = {
-      id: new Date().toISOString(),
+    addProduct({
       name,
       actualPrice,
-      isSold: false,
-    };
+    });
 
-    addProduct(newProduct);
     setName('');
     setPrice('');
     toast({

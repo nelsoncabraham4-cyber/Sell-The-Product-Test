@@ -34,7 +34,6 @@ export default function ProductTable({ products, onSale, onDelete, isAdmin }: Pr
               <TableHead>Product Name</TableHead>
               <TableHead>Actual Price</TableHead>
               <TableHead>Status</TableHead>
-              {!isAdmin && <TableHead>Sold Price</TableHead>}
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -43,38 +42,25 @@ export default function ProductTable({ products, onSale, onDelete, isAdmin }: Pr
               products.map((product) => (
                 <TableRow
                   key={product.id}
-                  data-sold={product.isSold}
-                  className="transition-colors duration-500 data-[sold=true]:bg-green-100/50 dark:data-[sold=true]:bg-green-900/30"
+                  className="transition-colors duration-500"
                 >
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>₹{product.actualPrice.toFixed(2)}</TableCell>
                   <TableCell>
-                    {product.isSold ? (
-                      <Badge variant="destructive">Sold</Badge>
-                    ) : (
-                      <Badge variant="secondary">Available</Badge>
-                    )}
+                    <Badge variant="secondary">Available</Badge>
                   </TableCell>
-                  {!isAdmin && (
-                    <TableCell>
-                      {product.isSold && product.sellingPrice
-                        ? `₹${product.sellingPrice.toFixed(2)}`
-                        : '-'}
-                    </TableCell>
-                  )}
                   <TableCell className="text-right">
                     {isAdmin ? (
                        <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => onDelete && onDelete(product.id)}
-                          disabled={product.isSold}
                           aria-label={`Delete ${product.name}`}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                     ) : (
-                      <Button size="sm" disabled={product.isSold} onClick={() => setSelectedProduct(product)}>
+                      <Button size="sm" onClick={() => setSelectedProduct(product)}>
                         Sell
                       </Button>
                     )}
@@ -83,7 +69,7 @@ export default function ProductTable({ products, onSale, onDelete, isAdmin }: Pr
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 4 : 5} className="h-24 text-center">
+                <TableCell colSpan={4} className="h-24 text-center">
                   No products available. Admins can add products from their dashboard.
                 </TableCell>
               </TableRow>

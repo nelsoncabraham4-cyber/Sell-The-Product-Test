@@ -2,8 +2,6 @@ export interface Product {
   id: string;
   name: string;
   actualPrice: number;
-  isSold: boolean;
-  sellingPrice?: number;
 }
 
 export interface Sale {
