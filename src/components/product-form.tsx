@@ -68,7 +68,6 @@ export default function ProductForm({ addProduct }: ProductFormProps) {
             <Input
               id="actualPrice"
               type="number"
-              placeholder="e.g., 99999.99"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               min="0.01"
