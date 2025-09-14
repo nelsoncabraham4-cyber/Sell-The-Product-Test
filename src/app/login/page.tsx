@@ -38,6 +38,7 @@ export default function UserLoginPage() {
       const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
       const user = userCredential.user;
       login({ type: 'user', name: user.displayName || teamName, uid: user.uid });
+      router.push('/dashboard');
     } catch (error: any) {
       // If user not found, create a new one
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
@@ -46,6 +47,7 @@ export default function UserLoginPage() {
           const user = userCredential.user;
           await updateProfile(user, { displayName: teamName });
           login({ type: 'user', name: teamName, uid: user.uid });
+          router.push('/dashboard');
         } catch (createError: any) {
           toast({
             title: 'Registration Failed',

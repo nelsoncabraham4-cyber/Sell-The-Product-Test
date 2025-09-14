@@ -49,11 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (info: AuthInfo) => {
     setAuth(info);
-    if (info.type === 'admin') {
-      router.push('/admin/dashboard');
-    } else {
-      router.push('/dashboard');
-    }
+    // Redirects are now handled in the login pages
   };
 
   const logout = () => {
