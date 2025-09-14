@@ -49,7 +49,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-headline text-4xl font-bold text-primary">
+        <h1 className="font-headline text-4xl font-bold">
           User Dashboard
         </h1>
         <p className="text-muted-foreground">Welcome, {auth.name}! Time to make some sales.</p>
@@ -74,7 +74,7 @@ export default function DashboardPage() {
               <CardDescription>A record of all the products you've sold.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+              <div className="rounded-lg border bg-card text-card-foreground">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -89,10 +89,10 @@ export default function DashboardPage() {
                       userSales.map((sale) => (
                         <TableRow key={sale.id}>
                           <TableCell className="font-medium">{sale.productName}</TableCell>
-                          <TableCell>₹{sale.actualPrice.toFixed(2)}</TableCell>
-                          <TableCell>₹{sale.sellingPrice.toFixed(2)}</TableCell>
+                          <TableCell>${sale.actualPrice.toFixed(2)}</TableCell>
+                          <TableCell>${sale.sellingPrice.toFixed(2)}</TableCell>
                           <TableCell className="text-right font-semibold text-green-600 dark:text-green-400">
-                            ₹{sale.profit.toFixed(2)}
+                            ${sale.profit.toFixed(2)}
                           </TableCell>
                         </TableRow>
                       ))

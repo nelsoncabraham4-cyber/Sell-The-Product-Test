@@ -27,7 +27,7 @@ export default function ProductTable({ products, onSale, onDelete, isAdmin }: Pr
 
   return (
     <>
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+      <div className="rounded-lg border bg-card text-card-foreground">
         <Table>
           <TableHeader>
             <TableRow>
@@ -45,9 +45,9 @@ export default function ProductTable({ products, onSale, onDelete, isAdmin }: Pr
                   className="transition-colors duration-500"
                 >
                   <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>₹{product.actualPrice.toFixed(2)}</TableCell>
+                  <TableCell>${product.actualPrice.toFixed(2)}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">Available</Badge>
+                    <Badge variant="outline">Available</Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     {isAdmin ? (

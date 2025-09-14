@@ -61,7 +61,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-headline text-4xl font-bold text-primary">Admin Dashboard</h1>
+        <h1 className="font-headline text-4xl font-bold">Admin Dashboard</h1>
         <p className="text-muted-foreground">Manage products and monitor sales activities.</p>
       </div>
 
@@ -79,7 +79,7 @@ export default function AdminDashboardPage() {
                     <ProductTable products={products} onDelete={deleteProduct} isAdmin={true} />
                 </div>
             </div>
-             <Card className="bg-destructive/10 border-destructive">
+             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline text-destructive">Danger Zone</CardTitle>
                 </CardHeader>

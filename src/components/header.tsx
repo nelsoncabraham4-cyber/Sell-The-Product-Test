@@ -18,11 +18,11 @@ const Header = () => {
   const { auth, logout } = useAuth();
 
   return (
-    <header className="bg-card border-b sticky top-0 z-40">
+    <header className="bg-background border-b sticky top-0 z-40">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         <Link href="/" className="flex items-center gap-2">
           <Store className="h-8 w-8 text-primary" />
-          <span className="font-headline text-xl font-bold text-primary">
+          <span className="font-headline text-xl font-bold text-foreground">
             Sell The Product
           </span>
         </Link>

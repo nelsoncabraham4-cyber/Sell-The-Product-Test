@@ -45,8 +45,8 @@ export default function AdminLoginPage() {
     <div className="flex items-center justify-center py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto bg-accent rounded-full p-3 w-fit mb-4">
-            <Shield className="w-8 h-8 text-accent-foreground" />
+          <div className="mx-auto bg-secondary rounded-full p-3 w-fit mb-4">
+            <Shield className="w-8 h-8 text-secondary-foreground" />
           </div>
           <CardTitle className="font-headline text-3xl">Admin Login</CardTitle>
           <CardDescription>Enter your credentials for administrative access.</CardDescription>
@@ -86,7 +86,7 @@ export default function AdminLoginPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" size="lg">
+            <Button type="submit" className="w-full" size="lg">
               Login as Admin
             </Button>
           </form>

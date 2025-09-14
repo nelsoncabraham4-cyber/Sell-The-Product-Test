@@ -35,9 +35,9 @@ export default function Leaderboard({ sales }: LeaderboardProps) {
   });
 
   const getRankColor = (rank: number) => {
-    if (rank === 0) return 'text-yellow-500';
-    if (rank === 1) return 'text-gray-400';
-    if (rank === 2) return 'text-yellow-700';
+    if (rank === 0) return 'text-amber-500';
+    if (rank === 1) return 'text-slate-500';
+    if (rank === 2) return 'text-amber-700';
     return 'text-muted-foreground';
   };
 
@@ -62,7 +62,7 @@ export default function Leaderboard({ sales }: LeaderboardProps) {
             </TableHeader>
             <TableBody>
               {sortedTeams.map((team, index) => (
-                <TableRow key={team.name} className={index === 0 ? 'bg-accent/20' : ''}>
+                <TableRow key={team.name} className={index === 0 ? 'bg-secondary' : ''}>
                   <TableCell className="font-medium text-center">
                     <div className={`flex justify-center items-center ${getRankColor(index)}`}>
                       {index === 0 && <Crown className="w-5 h-5 mr-1" />}
@@ -70,8 +70,8 @@ export default function Leaderboard({ sales }: LeaderboardProps) {
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">{team.name}</TableCell>
-                  <TableCell className="text-right font-semibold text-green-600 dark:text-green-400">
-                    ₹{team.profit.toFixed(2)}
+                  <TableCell className="text-right font-semibold text-green-600">
+                    ${team.profit.toFixed(2)}
                   </TableCell>
                 </TableRow>
               ))}
