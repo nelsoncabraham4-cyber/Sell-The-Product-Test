@@ -37,7 +37,7 @@ export default function Home() {
       </div>
       <div className="text-center mb-12">
         <h1 className="font-headline text-5xl md:text-7xl font-extrabold tracking-tighter">
-          <span className="block text-3xl md:text-4xl font-medium text-muted-foreground mb-2">Welcome to</span>
+          <span className="text-3xl md:text-4xl font-medium text-muted-foreground mr-4">Welcome to</span>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
             Sell The Product
           </span>
