@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShoppingBag } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import { ref, onValue, push, remove } from 'firebase/database';
 
 
@@ -32,6 +32,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!auth) return;
+    const db = getFirebaseDb();
     const productsRef = ref(db, 'products');
     const unsubscribeProducts = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
@@ -53,6 +54,7 @@ export default function DashboardPage() {
   }, [auth]);
 
   const handleSale = (sale: Omit<Sale, 'id'>) => {
+    const db = getFirebaseDb();
     const salesRef = ref(db, 'sales');
     push(salesRef, sale);
     

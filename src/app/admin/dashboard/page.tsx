@@ -12,7 +12,7 @@ import { ClearHistoryButton } from '@/components/clear-history-button';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import { ref, onValue, push, remove, set } from 'firebase/database';
 
 export default function AdminDashboardPage() {
@@ -34,6 +34,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (!auth) return;
+    const db = getFirebaseDb();
     const productsRef = ref(db, 'products');
     const unsubscribeProducts = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
@@ -55,11 +56,13 @@ export default function AdminDashboardPage() {
   }, [auth]);
 
   const addProduct = (product: Omit<Product, 'id'>) => {
+    const db = getFirebaseDb();
     const productsRef = ref(db, 'products');
     push(productsRef, product);
   };
 
   const deleteProduct = (productId: string) => {
+    const db = getFirebaseDb();
     const productRef = ref(db, `products/${productId}`);
     remove(productRef);
     toast({
@@ -69,6 +72,7 @@ export default function AdminDashboardPage() {
   };
 
   const clearAllData = () => {
+    const db = getFirebaseDb();
     const productsRef = ref(db, 'products');
     set(productsRef, null);
     const salesRef = ref(db, 'sales');

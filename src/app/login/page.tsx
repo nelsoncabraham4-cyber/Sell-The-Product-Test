@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { User } from 'lucide-react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getFirebaseAuth } from '@/lib/firebase';
 
 export default function UserLoginPage() {
   const { toast } = useToast();
@@ -28,6 +28,7 @@ export default function UserLoginPage() {
       return;
     }
     
+    const auth = getFirebaseAuth();
     // Create a predictable email format from the team name
     const email = `${teamName.toLowerCase().replace(/\s+/g, '')}@example.com`;
 
