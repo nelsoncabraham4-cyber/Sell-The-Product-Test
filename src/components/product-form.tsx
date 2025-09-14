@@ -58,7 +58,6 @@ export default function ProductForm({ addProduct }: ProductFormProps) {
             <Label htmlFor="productName">Product Name</Label>
             <Input
               id="productName"
-              placeholder="e.g., Super Widget"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
