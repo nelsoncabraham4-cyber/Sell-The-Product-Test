@@ -26,8 +26,8 @@ export default function Home() {
         <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-foreground whitespace-nowrap">
           Sell The Product
         </h1>
-        <p className="mt-4 text-md md:text-lg text-muted-foreground max-w-2xl mx-auto">
-          The ultimate sales competition where legends are born. Ready to join the game?
+        <p className="mt-4 text-sm text-muted-foreground max-w-2xl mx-auto">
+          The ultimate sales competition.
         </p>
       </div>
 
