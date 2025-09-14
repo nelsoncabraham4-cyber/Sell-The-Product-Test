@@ -23,6 +23,15 @@ const Header = () => {
     setIsClient(true);
   }, []);
 
+  const getAvatarFallback = () => {
+    if (auth?.name) {
+      return auth.name.charAt(0).toUpperCase();
+    }
+    if (auth?.email) {
+      return auth.email.charAt(0).toUpperCase();
+    }
+    return '?';
+  };
 
   return (
     <header className="bg-background border-b sticky top-0 z-40">
@@ -34,21 +43,21 @@ const Header = () => {
           </span>
         </Link>
 
-        {isClient && auth && auth.name && (
+        {isClient && auth && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback>{auth.name.charAt(0).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{auth.name}</p>
+                  <p className="text-sm font-medium leading-none">{auth.name || auth.email}</p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {auth.type === 'admin' ? 'Administrator' : 'User'}
+                    {auth.type === 'admin' ? 'Administrator' : 'Player'}
                   </p>
                 </div>
               </DropdownMenuLabel>
