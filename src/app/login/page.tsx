@@ -9,18 +9,16 @@ import { User, Chrome } from 'lucide-react';
 import { signInWithPopup } from 'firebase/auth';
 import { getFirebaseAuth, GoogleAuthProvider } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
-import { TeamNameDialog } from '@/components/team-name-dialog';
 
 export default function UserLoginPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { auth, setTeamName, isLoading } = useAuth();
-  const [isTeamNameDialogOpen, setTeamNameDialogOpen] = useState(false);
+  const { auth, isLoading } = useAuth();
 
   useEffect(() => {
     if (!isLoading && auth) {
       if (auth.needsTeamName) {
-        setTeamNameDialogOpen(true);
+        router.push('/create-team');
       } else if (auth.type === 'user') {
         router.push('/dashboard');
       }
@@ -41,28 +39,6 @@ export default function UserLoginPage() {
           variant: 'destructive',
         });
       }
-    }
-  };
-
-  const handleTeamNameSubmit = async (teamName: string) => {
-    if (!auth) {
-        toast({ title: 'Error', description: 'Authentication not found.', variant: 'destructive' });
-        return;
-    }
-    try {
-      await setTeamName(teamName);
-      setTeamNameDialogOpen(false);
-      toast({
-        title: 'Welcome!',
-        description: `Your team "${teamName}" has been set up.`,
-      });
-      router.push('/dashboard');
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: 'Failed to set team name.',
-        variant: 'destructive',
-      });
     }
   };
   
@@ -87,15 +63,6 @@ export default function UserLoginPage() {
           </CardContent>
         </Card>
       </div>
-      <TeamNameDialog
-        isOpen={isTeamNameDialogOpen}
-        onOpenChange={(open) => {
-            // Prevent closing the dialog by clicking outside
-            if (!open) return;
-            setTeamNameDialogOpen(open);
-        }}
-        onSubmit={handleTeamNameSubmit}
-      />
     </>
   );
 }
