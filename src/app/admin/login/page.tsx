@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,11 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Shield } from 'lucide-react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth as firebaseAuth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 
 export default function AdminLoginPage() {
-  const { login } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [password, setPassword] = useState('');
@@ -22,9 +20,7 @@ export default function AdminLoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-      const user = userCredential.user;
-      login({ type: 'admin', name: 'Admin', uid: user.uid });
+      await signInWithEmailAndPassword(auth, email, password);
       router.push('/admin/dashboard');
     } catch (error) {
       toast({

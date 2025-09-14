@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,10 +9,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { User } from 'lucide-react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth as firebaseAuth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 
 export default function UserLoginPage() {
-  const { login } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [teamName, setTeamName] = useState('');
@@ -35,18 +33,15 @@ export default function UserLoginPage() {
 
     try {
       // Try to sign in
-      const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-      const user = userCredential.user;
-      login({ type: 'user', name: user.displayName || teamName, uid: user.uid });
+      await signInWithEmailAndPassword(auth, email, password);
       router.push('/dashboard');
     } catch (error: any) {
       // If user not found, create a new one
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
-          const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
           await updateProfile(user, { displayName: teamName });
-          login({ type: 'user', name: teamName, uid: user.uid });
           router.push('/dashboard');
         } catch (createError: any) {
           toast({
