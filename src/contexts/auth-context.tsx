@@ -3,7 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, signOut, updateProfile, type User } from 'firebase/auth';
-import { getFirebaseAuth } from '@/lib/firebase';
+import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
+import { ref, set, get } from 'firebase/database';
 
 type AuthInfo = {
   uid: string;
@@ -28,21 +29,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const processUser = useCallback(async (user: User | null) => {
     if (user) {
-        // It's important to get the fresh user data, including displayName
-        await user.reload(); 
-        const freshUser = getFirebaseAuth().currentUser;
-
-        if (freshUser) {
-            const isAdmin = freshUser.email?.toLowerCase() === 'admin@example.com';
-            setAuthInfo({ 
-                uid: freshUser.uid, 
-                type: isAdmin ? 'admin' : 'user',
-                name: freshUser.displayName, // This will be null for new users
-                email: freshUser.email
-            });
+        const isAdmin = user.email?.toLowerCase() === 'admin@example.com';
+        
+        let teamName: string | null = null;
+        
+        if (isAdmin) {
+          teamName = user.displayName;
         } else {
-            setAuthInfo(null);
+          // For regular users, the Realtime Database is the source of truth.
+          const db = getFirebaseDb();
+          const userRef = ref(db, `users/${user.uid}`);
+          const snapshot = await get(userRef);
+          
+          // If a user record exists in the DB, use that name.
+          if (snapshot.exists() && snapshot.val().name) {
+            teamName = snapshot.val().name;
+          }
+          // If the record doesn't exist, 'teamName' remains null, 
+          // forcing the user to the set-team-name page, even if `user.displayName` has an old value.
         }
+
+        setAuthInfo({ 
+            uid: user.uid, 
+            type: isAdmin ? 'admin' : 'user',
+            name: teamName,
+            email: user.email
+        });
     } else {
       setAuthInfo(null);
     }
@@ -67,8 +79,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const auth = getFirebaseAuth();
     const user = auth.currentUser;
     if (user) {
+      // Update the user's profile in Firebase Auth.
+      // This is what the user sees initially.
       await updateProfile(user, { displayName: teamName });
-      // After updating, re-process the user to update the context state
+
+      // Also save/update user info in the Realtime Database.
+      // This is the source of truth for the admin panel and for name updates.
+      const db = getFirebaseDb();
+      const userRef = ref(db, 'users/' + user.uid);
+      await set(userRef, {
+        name: teamName,
+        email: user.email,
+      });
+
+      // After updating, re-process the user to update the context state immediately.
       await processUser(user); 
     } else {
       throw new Error("User not found. You must be logged in to set a team name.");

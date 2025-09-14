@@ -28,12 +28,8 @@ export function TeamSalesDialog({ teamName, sales, isOpen, onOpenChange, onUpdat
   const sortedSales = [...sales].sort((a, b) => b.timestamp - a.timestamp);
   const totalProfit = sales.reduce((sum, sale) => sum + sale.profit, 0);
 
-  const handleUpdate = (saleId: string, newSellingPrice: number) => {
-    const saleToUpdate = sales.find(s => s.id === saleId);
-    if (saleToUpdate) {
-      const newProfit = newSellingPrice - saleToUpdate.actualPrice;
-      onUpdateSale(saleId, newSellingPrice, newProfit);
-    }
+  const handleUpdate = (saleId: string, newSellingPrice: number, newProfit: number) => {
+    onUpdateSale(saleId, newSellingPrice, newProfit);
     setEditingSale(null);
   };
 

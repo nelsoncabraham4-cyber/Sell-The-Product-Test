@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ShoppingBag } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getFirebaseDb } from '@/lib/firebase';
-import { ref, onValue, push, remove } from 'firebase/database';
+import { ref, onValue, push } from 'firebase/database';
 
 
 export default function DashboardPage() {
@@ -61,9 +61,6 @@ export default function DashboardPage() {
     const db = getFirebaseDb();
     const salesRef = ref(db, 'sales');
     push(salesRef, sale);
-    
-    const productRef = ref(db, `products/${sale.productId}`);
-    remove(productRef);
   };
   
   const userSales = useMemo(() => {
@@ -72,6 +69,11 @@ export default function DashboardPage() {
       .filter((sale) => sale.teamName === auth.name)
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [sales, auth]);
+
+  const availableProducts = useMemo(() => {
+    const soldProductIds = new Set(userSales.map(sale => sale.productId));
+    return products.filter(product => !soldProductIds.has(product.id));
+  }, [products, userSales]);
 
   if (isLoading || !auth || auth.type !== 'user' || !auth.name) {
     return <div className="text-center p-8">Redirecting...</div>;
@@ -94,7 +96,7 @@ export default function DashboardPage() {
         <TabsContent value="dashboard" className="space-y-8 mt-8">
           <div>
             <h2 className="font-headline text-2xl font-bold">Products for Sale</h2>
-            <ProductTable products={products} onSale={handleSale} isAdmin={false} />
+            <ProductTable products={availableProducts} onSale={handleSale} isAdmin={false} />
           </div>
           <Card>
             <CardHeader>
