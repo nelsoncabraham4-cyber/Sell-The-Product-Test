@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ShoppingBag } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { db } from '@/lib/firebase';
-import { ref, onValue, push } from 'firebase/database';
+import { ref, onValue, push, remove } from 'firebase/database';
 
 
 export default function DashboardPage() {
@@ -31,6 +31,7 @@ export default function DashboardPage() {
   }, [auth, isLoading, router]);
 
   useEffect(() => {
+    if (isLoading) return <div className="text-center p-8">Redirecting...</div>;
     if (!auth) return;
     const productsRef = ref(db, 'products');
     const unsubscribeProducts = onValue(productsRef, (snapshot) => {
@@ -50,11 +51,14 @@ export default function DashboardPage() {
       unsubscribeProducts();
       unsubscribeSales();
     };
-  }, [auth]);
+  }, [auth, isLoading]);
 
   const handleSale = (sale: Omit<Sale, 'id'>) => {
     const salesRef = ref(db, 'sales');
     push(salesRef, sale);
+    
+    const productRef = ref(db, `products/${sale.productId}`);
+    remove(productRef);
   };
   
   const userSales = useMemo(() => {
