@@ -7,6 +7,7 @@ const firebaseConfig = {
   "storageBucket": "studio-3581372645-f9bc5.firebasestorage.app",
   "apiKey": "AIzaSyCbze9Yz4oUDCC3fW3LaeKUDva5N8x_3xk",
   "authDomain": "studio-3581372645-f9bc5.firebaseapp.com",
+  "databaseURL": "https://studio-3581372645-f9bc5-default-rtdb.firebaseio.com",
   "measurementId": "",
   "messagingSenderId": "565384159901"
 };
