@@ -125,7 +125,7 @@ export default function DashboardPage() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center">
-                          
+                          No sales yet. Go make one!
                         </TableCell>
                       </TableRow>
                     )}
