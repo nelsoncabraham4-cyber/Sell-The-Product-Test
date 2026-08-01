@@ -62,7 +62,6 @@ export default function AdminDashboardPage() {
 
   const [players, setPlayers] = useState<Player[]>([]);
   const [guidelines, setGuidelines] = useState<Array<{ id: string; text: string }>>([]);
-  const [newGuideline, setNewGuideline] = useState('');
 
 
 
@@ -611,68 +610,59 @@ export default function AdminDashboardPage() {
             </Card>
 
               {/* Guidelines Management */}
-
               <Card className="mt-4">
-
                 <CardHeader>
-
-                  <CardTitle className="font-headline flex items-center gap-2">Guidelines Management</CardTitle>
-
+                  <CardTitle className="font-headline flex items-center gap-2">Guidelines Manager</CardTitle>
                 </CardHeader>
-
-                <CardContent>
-
-                  {guidelines.map((g) => (
-                    <div key={g.id} className="flex flex-col md:flex-row md:items-start space-y-2 md:space-y-0 md:space-x-2 mb-4 p-3 border rounded-lg bg-background">
-                      <Textarea
-                        value={g.text}
-                        rows={3}
-                        onChange={(e) => {
-                          const newText = e.target.value;
-                          setGuidelines((prev) =>
-                            prev.map((item) => (item.id === g.id ? { ...item, text: newText } : item))
-                          );
-                          update(ref(getFirebaseDb(), `guidelines/${g.id}`), { text: newText });
-                        }}
-                        className="flex-grow font-sans text-sm"
-                      />
-                      <Button
-                        variant="destructive"
-                        className="self-end md:self-start"
-                        onClick={() => {
-                          if (confirm('Delete this guideline?')) {
-                            remove(ref(getFirebaseDb(), `guidelines/${g.id}`));
-                          }
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  ))}
-                  <div className="flex flex-col space-y-2 mt-6 pt-4 border-t">
-                    <h3 className="font-headline text-sm font-semibold text-muted-foreground">Add Guideline</h3>
-                    <Textarea
-                      placeholder="Type a new guideline here..."
-                      value={newGuideline}
-                      rows={3}
-                      onChange={(e) => setNewGuideline(e.target.value)}
-                      className="font-sans text-sm"
-                    />
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    {guidelines.map((g, index) => (
+                      <div key={g.id} className="flex items-center justify-between p-2 border rounded-md bg-background">
+                        <span className="text-sm font-semibold truncate flex-1 text-muted-foreground pr-2">
+                          Guideline #{index + 1}
+                        </span>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newText = prompt('Edit Guideline text:', g.text);
+                              if (newText !== null && newText.trim()) {
+                                update(ref(getFirebaseDb(), `guidelines/${g.id}`), { text: newText.trim() });
+                              }
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              if (confirm('Delete this guideline?')) {
+                                remove(ref(getFirebaseDb(), `guidelines/${g.id}`));
+                              }
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex space-x-2 pt-2 border-t">
                     <Button
                       onClick={() => {
-                        if (newGuideline.trim()) {
-                          push(ref(getFirebaseDb(), 'guidelines'), { text: newGuideline.trim() });
-                          setNewGuideline('');
+                        const newText = prompt('Enter new guideline text:');
+                        if (newText !== null && newText.trim()) {
+                          push(ref(getFirebaseDb(), 'guidelines'), { text: newText.trim() });
                         }
                       }}
-                      className="self-end px-6"
+                      className="w-full"
                     >
-                      Add Guideline
+                      Add New Guideline
                     </Button>
                   </div>
-
                 </CardContent>
-
               </Card>
 
               {/* QR Code Management */}
