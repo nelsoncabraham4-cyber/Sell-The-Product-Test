@@ -7,12 +7,16 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { useAuth } from '@/contexts/auth-context';
+import Link from "next/link";
 
 import type { Product, Sale, Player, OverallStatistics, TeamStatistics } from '@/lib/types';
 
 import ProductTable from '@/components/product-table';
 
 import Leaderboard from '@/components/leaderboard';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 import ProductForm from '@/components/product-form';
 
@@ -57,6 +61,8 @@ export default function AdminDashboardPage() {
   const [sales, setSales] = useState<Sale[]>([]);
 
   const [players, setPlayers] = useState<Player[]>([]);
+  const [guidelines, setGuidelines] = useState<Array<{ id: string; text: string }>>([]);
+  const [newGuideline, setNewGuideline] = useState('');
 
 
 
@@ -132,6 +138,28 @@ export default function AdminDashboardPage() {
 
 
 
+    const guidelinesRef = ref(db, 'guidelines');
+    const unsubscribeGuidelines = onValue(guidelinesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        const defaultGuidelines = [
+          "Welcome participants! To ensure a fair, competitive, and smooth event, all teams must carefully read and strictly adhere to the following rules:",
+          "1. ⏱️ Time Management\n• Strict Schedule: All sales activities must be completed within the allotted time.\n• No Extensions: No late sales or transactions will be accepted under any circumstances.",
+          "2. 💸 Pricing & Scoring Policy\n• Border Price Limit: Selling any product below its specified base/border price will incur NEGATIVE POINTS.\n• Unsold Inventory: Remaining unsold items will NOT incur any negative marks or penalties.\n• Leaderboard Criteria: Real-time team rankings are calculated solely on total accumulated profit.",
+          "3. 💳 Payment Methods\n• Transactions are strictly allowed through two modes only:\n  - Cash Payments\n  - Digital Payment via Official QR Code",
+          "4. 🌐 Real-Time Portal Updates\n• Immediate Logging: Right after a sale, teams must immediately log the transaction on the official portal.\n• Live Updates: Leaderboard rankings will only update after the entry is successfully logged online.",
+          "5. 🛡️ Integrity & Fair Play\n• Strict Reconciliation: Final cash in hand (and digital QR receipts) will be physically verified against your portal logs.\n• Zero Tolerance: Any deliberate misreporting or malpractice will lead to IMMEDIATE DISQUALIFICATION.",
+          "📌 Quick Tips for Success\n• Double-Check Amounts: Always re-verify sale figures on the portal immediately after each sale to avoid reconciliation errors at the end."
+        ];
+        defaultGuidelines.forEach((text) => {
+          push(guidelinesRef, { text });
+        });
+      } else {
+        const loadedGuidelines: Array<{ id: string; text: string }> = Object.entries(data).map(([key, value]) => ({ id: key, ...(value as any) }));
+        setGuidelines(loadedGuidelines);
+      }
+    });
+
     return () => {
 
       unsubscribeProducts();
@@ -139,6 +167,7 @@ export default function AdminDashboardPage() {
       unsubscribeSales();
 
       unsubscribeUsers();
+      unsubscribeGuidelines();
 
     };
 
@@ -579,6 +608,93 @@ export default function AdminDashboardPage() {
 
                 </CardContent>
 
+            </Card>
+
+              {/* Guidelines Management */}
+
+              <Card className="mt-4">
+
+                <CardHeader>
+
+                  <CardTitle className="font-headline flex items-center gap-2">Guidelines Management</CardTitle>
+
+                </CardHeader>
+
+                <CardContent>
+
+                  {guidelines.map((g) => (
+                    <div key={g.id} className="flex flex-col md:flex-row md:items-start space-y-2 md:space-y-0 md:space-x-2 mb-4 p-3 border rounded-lg bg-background">
+                      <Textarea
+                        value={g.text}
+                        rows={3}
+                        onChange={(e) => {
+                          const newText = e.target.value;
+                          setGuidelines((prev) =>
+                            prev.map((item) => (item.id === g.id ? { ...item, text: newText } : item))
+                          );
+                          update(ref(getFirebaseDb(), `guidelines/${g.id}`), { text: newText });
+                        }}
+                        className="flex-grow font-sans text-sm"
+                      />
+                      <Button
+                        variant="destructive"
+                        className="self-end md:self-start"
+                        onClick={() => {
+                          if (confirm('Delete this guideline?')) {
+                            remove(ref(getFirebaseDb(), `guidelines/${g.id}`));
+                          }
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex flex-col space-y-2 mt-6 pt-4 border-t">
+                    <h3 className="font-headline text-sm font-semibold text-muted-foreground">Add Guideline</h3>
+                    <Textarea
+                      placeholder="Type a new guideline here..."
+                      value={newGuideline}
+                      rows={3}
+                      onChange={(e) => setNewGuideline(e.target.value)}
+                      className="font-sans text-sm"
+                    />
+                    <Button
+                      onClick={() => {
+                        if (newGuideline.trim()) {
+                          push(ref(getFirebaseDb(), 'guidelines'), { text: newGuideline.trim() });
+                          setNewGuideline('');
+                        }
+                      }}
+                      className="self-end px-6"
+                    >
+                      Add Guideline
+                    </Button>
+                  </div>
+
+                </CardContent>
+
+              </Card>
+
+              {/* QR Code Management */}
+
+            <Card className="mt-4">
+
+              <CardHeader>
+
+                <CardTitle className="font-headline flex items-center gap-2">
+
+                  QR Code Management
+
+                </CardTitle>
+
+              </CardHeader>
+
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-2">Upload or replace the QR code used for payments.</p>
+                <Link href="/admin/qr-management">
+                  <Button variant="outline">Manage QR Code</Button>
+                </Link>
+              </CardContent>
             </Card>
 
         </TabsContent>

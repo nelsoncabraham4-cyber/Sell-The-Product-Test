@@ -22,6 +22,7 @@ export default function DashboardPage() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [guidelines, setGuidelines] = useState<Array<{ id: string; text: string }>>([]);
 
   useEffect(() => {
     if (isLoading) {
@@ -95,6 +96,21 @@ useEffect(() => {
         ? Object.entries(data).map(([key, value]) => ({ id: key, ...(value as Omit<Sale, 'id'>) }))
         : [];
       setSales(loaded);
+    });
+    return () => unsub();
+  }, [auth]);
+
+  // Listen to guidelines in real time
+  useEffect(() => {
+    if (!auth) return;
+    const db = getFirebaseDb();
+    const guidelinesRef = ref(db, 'guidelines');
+    const unsub = onValue(guidelinesRef, (snapshot) => {
+      const data = snapshot.val();
+      const loaded: Array<{ id: string; text: string }> = data
+        ? Object.entries(data).map(([key, value]) => ({ id: key, ...(value as any) }))
+        : [];
+      setGuidelines(loaded);
     });
     return () => unsub();
   }, [auth]);
@@ -183,6 +199,26 @@ useEffect(() => {
         </h1>
         <p className="text-muted-foreground">Welcome{auth.name ? `, ${auth.name}` : ''}</p>
       </div>
+
+      {guidelines.length > 0 && (
+        <Card className="border-l-4 border-l-primary bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="font-headline text-lg font-bold flex items-center gap-2">
+              📋 Event Guidelines & Rules
+            </CardTitle>
+            <CardDescription>
+              Please read and adhere to the guidelines below for a fair and smooth event.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {guidelines.map((g) => (
+              <div key={g.id} className="whitespace-pre-line text-sm text-muted-foreground bg-muted/40 p-3 rounded-lg border border-border/50">
+                {g.text}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
        <Tabs defaultValue="dashboard">
         <TabsList className="grid w-full grid-cols-2">
