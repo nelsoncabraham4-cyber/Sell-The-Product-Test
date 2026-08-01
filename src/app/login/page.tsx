@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { User, Eye, EyeOff } from 'lucide-react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { getFirebaseAuth } from '@/lib/firebase';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
+import { ref, get } from 'firebase/database';
 import { useAuth } from '@/contexts/auth-context';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,15 +24,24 @@ export default function UserLoginPage() {
   useEffect(() => {
     if (isLoading) return;
     if (auth) {
-      if (auth.type === 'user' && auth.name) {
+      if (auth.type === 'admin') {
+        // Admin trying to use Player Login - sign out and deny access
+        const firebaseAuth = getFirebaseAuth();
+        signOut(firebaseAuth).then(() => {
+          toast({
+            title: 'Access Denied',
+            description: 'This is an Admin account. Please use the Admin Login.',
+            variant: 'destructive',
+          });
+          router.push('/admin/login');
+        });
+      } else if (auth.name) {
         router.push('/dashboard');
-      } else if (auth.type === 'user' && !auth.name) {
+      } else {
         router.push('/set-team-name');
-      } else if (auth.type === 'admin') {
-        router.push('/admin/dashboard');
       }
     }
-  }, [auth, isLoading, router]);
+  }, [auth, isLoading, router, toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +57,26 @@ export default function UserLoginPage() {
     const firebaseAuth = getFirebaseAuth();
     try {
       await signInWithEmailAndPassword(firebaseAuth, email, password);
-      // The useEffect will handle redirection.
+      // After sign‑in, verify role from Realtime Database
+      const user = firebaseAuth.currentUser;
+      if (user) {
+        const db = getFirebaseDb();
+        const userRef = ref(db, `users/${user.uid}`);
+        const snapshot = await get(userRef);
+        const userData = snapshot.val();
+        if (userData?.isAdmin) {
+          // Admin attempted player login – block access
+          await signOut(firebaseAuth);
+          toast({
+            title: 'Access Denied',
+            description: 'Admin accounts must use Admin Login.',
+            variant: 'destructive',
+          });
+          router.push('/admin/login');
+          return;
+        }
+      }
+      // Normal player – let auth‑context handle navigation
     } catch (error: any) {
       console.error('Login Error:', error.code, error.message);
       toast({
@@ -57,6 +86,12 @@ export default function UserLoginPage() {
       });
     }
   };
+
+  // Clear form fields on mount
+  useEffect(() => {
+    setEmail('');
+    setPassword('');
+  }, []);
 
   if (isLoading || auth) {
     return <div className="text-center p-8">Loading...</div>;
@@ -84,6 +119,7 @@ export default function UserLoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="off"
                 />
               </div>
               <div className="space-y-2">
@@ -96,6 +132,7 @@ export default function UserLoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    autoComplete="off"
                     />
                     <Button
                     type="button"

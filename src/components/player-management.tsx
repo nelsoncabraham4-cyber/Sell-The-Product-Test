@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Plus } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Input } from './ui/input';
@@ -16,12 +16,17 @@ interface PlayerManagementProps {
   players: Player[];
   onEdit: (uid: string, newTeamName: string) => void;
   onDelete: (uid: string) => void;
+  onCreate?: (email: string, teamName: string) => void;
 }
 
-export default function PlayerManagement({ players, onEdit, onDelete }: PlayerManagementProps) {
+export default function PlayerManagement({ players, onEdit, onDelete, onCreate }: PlayerManagementProps) {
   const [playerToDelete, setPlayerToDelete] = useState<Player | null>(null);
   const [playerToEdit, setPlayerToEdit] = useState<Player | null>(null);
   const [newTeamName, setNewTeamName] = useState('');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newPlayerEmail, setNewPlayerEmail] = useState('');
+  const [newPlayerTeamName, setNewPlayerTeamName] = useState('');
+  const [newPlayerPassword, setNewPlayerPassword] = useState('');
 
   const handleDeleteClick = (player: Player) => {
     setPlayerToDelete(player);
@@ -47,6 +52,16 @@ export default function PlayerManagement({ players, onEdit, onDelete }: PlayerMa
     }
   };
 
+  const handleCreatePlayer = () => {
+    if (onCreate && newPlayerEmail && newPlayerTeamName) {
+      onCreate(newPlayerEmail, newPlayerTeamName);
+      setIsCreateDialogOpen(false);
+      setNewPlayerEmail('');
+      setNewPlayerTeamName('');
+      setNewPlayerPassword('');
+    }
+  };
+
 
   return (
     <>
@@ -54,6 +69,12 @@ export default function PlayerManagement({ players, onEdit, onDelete }: PlayerMa
         <CardHeader>
           <CardTitle className="font-headline">Player Management</CardTitle>
           <CardDescription>View, edit, or remove players from the game.</CardDescription>
+          {onCreate && (
+            <Button onClick={() => setIsCreateDialogOpen(true)} className="mt-4">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Player
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border bg-card text-card-foreground">
@@ -138,6 +159,33 @@ export default function PlayerManagement({ players, onEdit, onDelete }: PlayerMa
             <DialogFooter>
                 <Button variant="outline" onClick={() => setPlayerToEdit(null)}>Cancel</Button>
                 <Button onClick={handleConfirmEdit}>Save Changes</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Player Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Add New Player</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="new-player-email">Email</Label>
+                    <Input id="new-player-email" type="email" value={newPlayerEmail} onChange={(e) => setNewPlayerEmail(e.target.value)} placeholder="team01@example.com" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="new-player-team-name">Team Name</Label>
+                    <Input id="new-player-team-name" value={newPlayerTeamName} onChange={(e) => setNewPlayerTeamName(e.target.value)} placeholder="Team 01" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="new-player-password">Password</Label>
+                    <Input id="new-player-password" type="password" value={newPlayerPassword} onChange={(e) => setNewPlayerPassword(e.target.value)} placeholder="••••••••" />
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreatePlayer}>Create Player</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>

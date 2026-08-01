@@ -6,38 +6,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Crown, Trophy } from 'lucide-react';
 import { TeamSalesDialog } from './team-sales-dialog';
+import { calculateAllTeamStatistics } from '@/lib/statistics';
 
 interface LeaderboardProps {
   sales: Sale[];
   isAdmin?: boolean;
-  onUpdateSale?: (saleId: string, newSellingPrice: number, newProfit: number) => void;
+  userTeamName?: string;
+  onUpdateSale?: (saleId: string, newSellingPrice: number, newProfit: number, newPaymentMethod?: 'cash' | 'qr') => void;
 }
 
-interface TeamStats {
-  name: string;
-  profit: number;
-  lastSaleTimestamp: number;
-}
-
-export default function Leaderboard({ sales, isAdmin = false, onUpdateSale }: LeaderboardProps) {
+export default function Leaderboard({ sales, isAdmin = false, userTeamName, onUpdateSale }: LeaderboardProps) {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 
-  const teamStats = sales.reduce((acc, sale) => {
-    if (!acc[sale.teamName]) {
-      acc[sale.teamName] = { name: sale.teamName, profit: 0, lastSaleTimestamp: 0 };
-    }
-    acc[sale.teamName].profit += sale.profit;
-    if (sale.timestamp > acc[sale.teamName].lastSaleTimestamp) {
-      acc[sale.teamName].lastSaleTimestamp = sale.timestamp;
-    }
-    return acc;
-  }, {} as Record<string, TeamStats>);
+  const teamStatistics = calculateAllTeamStatistics(sales);
 
-  const sortedTeams = Object.values(teamStats).sort((a, b) => {
+  const sortedTeams = teamStatistics.sort((a, b) => {
     if (b.profit !== a.profit) {
       return b.profit - a.profit;
     }
-    return a.lastSaleTimestamp - b.lastSaleTimestamp;
+    return a.profit - b.profit;
   });
 
   const getRankColor = (rank: number) => {
@@ -48,7 +35,7 @@ export default function Leaderboard({ sales, isAdmin = false, onUpdateSale }: Le
   };
 
   const handleRowClick = (teamName: string) => {
-    if (isAdmin) {
+    if (isAdmin || teamName === userTeamName) {
       setSelectedTeam(teamName);
     }
   };
@@ -66,6 +53,7 @@ export default function Leaderboard({ sales, isAdmin = false, onUpdateSale }: Le
           <CardDescription>
             Teams ranked by total profit.
             {isAdmin && " Click on a team to view their sales."}
+            {!isAdmin && userTeamName && " Click on your team to view your sales."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -75,15 +63,19 @@ export default function Leaderboard({ sales, isAdmin = false, onUpdateSale }: Le
                 <TableRow>
                   <TableHead className="w-[50px] text-center">Rank</TableHead>
                   <TableHead>Team</TableHead>
-                  <TableHead className="text-right">Total Profit (₹)</TableHead>
+                  <TableHead className="text-right">Products Sold</TableHead>
+                  <TableHead className="text-right">Turnover (₹)</TableHead>
+                  <TableHead className="text-right">Collection (₹)</TableHead>
+                  <TableHead className="text-right">Profit (₹)</TableHead>
+                  <TableHead className="text-right">Loss (₹)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sortedTeams.map((team, index) => (
                   <TableRow
-                    key={team.name}
-                    className={`${index === 0 ? 'bg-secondary' : ''} ${isAdmin ? 'cursor-pointer hover:bg-muted/50' : ''}`}
-                    onClick={() => handleRowClick(team.name)}
+                    key={team.teamName}
+                    className={`${index === 0 ? 'bg-secondary' : ''} ${(isAdmin || team.teamName === userTeamName) ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                    onClick={() => handleRowClick(team.teamName)}
                   >
                     <TableCell className="font-medium text-center">
                       <div className={`flex justify-center items-center ${getRankColor(index)}`}>
@@ -91,9 +83,15 @@ export default function Leaderboard({ sales, isAdmin = false, onUpdateSale }: Le
                         {index + 1}
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{team.name}</TableCell>
-                    <TableCell className="text-right font-semibold text-green-600">
+                    <TableCell className="font-medium">{team.teamName}</TableCell>
+                    <TableCell className="text-right">{team.productsSold}</TableCell>
+                    <TableCell className="text-right">₹{team.turnover.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">₹{team.totalCollection.toFixed(2)}</TableCell>
+                    <TableCell className={`text-right font-semibold ${team.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       ₹{team.profit.toFixed(2)}
+                    </TableCell>
+                    <TableCell className={`text-right ${team.loss > 0 ? 'text-red-600' : ''}`}>
+                      ₹{team.loss.toFixed(2)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -106,7 +104,7 @@ export default function Leaderboard({ sales, isAdmin = false, onUpdateSale }: Le
           )}
         </CardContent>
       </Card>
-      {selectedTeam && isAdmin && onUpdateSale && (
+      {selectedTeam && (isAdmin || selectedTeam === userTeamName) && (
         <TeamSalesDialog
           teamName={selectedTeam}
           sales={teamSales}
@@ -116,7 +114,8 @@ export default function Leaderboard({ sales, isAdmin = false, onUpdateSale }: Le
               setSelectedTeam(null);
             }
           }}
-          onUpdateSale={onUpdateSale}
+          onUpdateSale={isAdmin ? onUpdateSale : undefined}
+          isAdmin={isAdmin}
         />
       )}
     </>

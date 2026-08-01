@@ -11,25 +11,29 @@ import {
 } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from './ui/button';
-import { Edit } from 'lucide-react';
+import { Edit, Check, X } from 'lucide-react';
 import { EditSaleDialog } from './edit-sale-dialog';
+import { Badge } from '@/components/ui/badge';
 
 interface TeamSalesDialogProps {
   teamName: string;
   sales: Sale[];
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdateSale: (saleId: string, newSellingPrice: number, newProfit: number) => void;
+  onUpdateSale?: (saleId: string, newSellingPrice: number, newProfit: number, newPaymentMethod?: 'cash' | 'qr') => void;
+  isAdmin?: boolean;
 }
 
-export function TeamSalesDialog({ teamName, sales, isOpen, onOpenChange, onUpdateSale }: TeamSalesDialogProps) {
+export function TeamSalesDialog({ teamName, sales, isOpen, onOpenChange, onUpdateSale, isAdmin = false }: TeamSalesDialogProps) {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
 
   const sortedSales = [...sales].sort((a, b) => b.timestamp - a.timestamp);
   const totalProfit = sales.reduce((sum, sale) => sum + sale.profit, 0);
 
-  const handleUpdate = (saleId: string, newSellingPrice: number, newProfit: number) => {
-    onUpdateSale(saleId, newSellingPrice, newProfit);
+  const handleUpdate = (saleId: string, newSellingPrice: number, newProfit: number, newPaymentMethod?: 'cash' | 'qr') => {
+    if (onUpdateSale) {
+      onUpdateSale(saleId, newSellingPrice, newProfit, newPaymentMethod);
+    }
     setEditingSale(null);
   };
 
@@ -50,8 +54,9 @@ export function TeamSalesDialog({ teamName, sales, isOpen, onOpenChange, onUpdat
                   <TableHead>Product</TableHead>
                   <TableHead>Sale Price</TableHead>
                   <TableHead>Actual Price</TableHead>
+                  <TableHead>Payment</TableHead>
                   <TableHead>Profit</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  {isAdmin && <TableHead className="text-right">Action</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -61,19 +66,47 @@ export function TeamSalesDialog({ teamName, sales, isOpen, onOpenChange, onUpdat
                       <TableCell className="font-medium">{sale.productName}</TableCell>
                       <TableCell>₹{sale.sellingPrice.toFixed(2)}</TableCell>
                       <TableCell>₹{sale.actualPrice.toFixed(2)}</TableCell>
-                      <TableCell className="font-semibold text-green-600">
-                        ₹{sale.profit.toFixed(2)}
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            sale.paymentMethod === 'cash'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                        }`}>
+                          {sale.paymentMethod === 'cash' ? 'Cash' : sale.paymentMethod === 'qr' ? 'QR' : 'N/A'}
+                        </span>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => setEditingSale(sale)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {sale.profit >= 0 ? (
+                            <>
+                              <Check className="h-4 w-4 text-green-600" />
+                              <span className="font-semibold text-green-600">
+                                +₹{sale.profit.toFixed(2)}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <X className="h-4 w-4 text-red-600" />
+                              <span className="font-semibold text-red-600">
+                                -₹{Math.abs(sale.profit).toFixed(2)}
+                              </span>
+                              <Badge variant="destructive" className="text-xs">LOSS</Badge>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
+                      {isAdmin && (
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => setEditingSale(sale)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
+                    <TableCell colSpan={isAdmin ? 6 : 5} className="h-24 text-center">
                       This team has not made any sales yet.
                     </TableCell>
                   </TableRow>
