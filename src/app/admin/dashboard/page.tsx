@@ -32,12 +32,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-import { getFirebaseDb, getFirebaseAuth } from '@/lib/firebase';
-
+import { getFirebaseDb } from '@/lib/firebase';
 import { ref, onValue, push, remove, set, update, query, orderByChild, equalTo, get } from 'firebase/database';
-
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-
+import { createPlayerAccount, getFriendlyAuthErrorMessage } from '@/lib/admin-player-service';
 import PlayerManagement from '@/components/player-management';
 
 import { DollarSign, TrendingUp, Package, Wallet, AlertCircle } from 'lucide-react';
@@ -54,7 +51,16 @@ export default function AdminDashboardPage() {
 
   const { toast } = useToast();
 
-
+  const renderCount = useState(() => ({ count: 0 }))[0];
+  renderCount.count++;
+  console.log(
+    `[ADMIN RENDER #${renderCount.count}] auth.uid:`,
+    auth?.uid,
+    'pathname:',
+    typeof window !== 'undefined' ? window.location.pathname : '',
+    'body.pointerEvents:',
+    typeof document !== 'undefined' ? document.body.style.pointerEvents : ''
+  );
 
   const [products, setProducts] = useState<Product[]>([]);
 
@@ -66,6 +72,13 @@ export default function AdminDashboardPage() {
 
 
   useEffect(() => {
+    // ── DIAG [EFFECT-AUTH] auth redirect check ────────────────────────────────
+    console.log(
+      '[DIAG][EFFECT-AUTH] ran — isLoading:', isLoading,
+      'auth?.uid:', auth?.uid,
+      'auth?.type:', auth?.type,
+      'pathname:', typeof window !== 'undefined' ? window.location.pathname : ''
+    );
 
     if (isLoading) {
 
@@ -90,6 +103,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
 
     if (!auth) return;
+    console.log('[ADMIN DASHBOARD USEEFFECT] Subscribing Firebase listeners for auth:', auth.uid);
 
     const db = getFirebaseDb();
 
@@ -98,7 +112,12 @@ export default function AdminDashboardPage() {
     const productsRef = ref(db, 'products');
 
     const unsubscribeProducts = onValue(productsRef, (snapshot) => {
-
+      console.log(
+        '[FIREBASE LISTENER - products] Fired — snapshot.exists():', snapshot.exists(),
+        'numChildren:', snapshot.exists() ? Object.keys(snapshot.val() ?? {}).length : 0,
+        'auth.uid:', auth?.uid,
+        'body.pointerEvents:', document.body.style.pointerEvents
+      );
       const data = snapshot.val();
 
       const loadedProducts: Product[] = data ? Object.entries(data).map(([key, value]) => ({ id: key, ...(value as Omit<Product, 'id'>) })) : [];
@@ -112,7 +131,12 @@ export default function AdminDashboardPage() {
     const salesRef = ref(db, 'sales');
 
     const unsubscribeSales = onValue(salesRef, (snapshot) => {
-
+      console.log(
+        '[FIREBASE LISTENER - sales] Fired — snapshot.exists():', snapshot.exists(),
+        'numChildren:', snapshot.exists() ? Object.keys(snapshot.val() ?? {}).length : 0,
+        'auth.uid:', auth?.uid,
+        'body.pointerEvents:', document.body.style.pointerEvents
+      );
       const data = snapshot.val();
 
       const loadedSales: Sale[] = data ? Object.entries(data).map(([key, value]) => ({ id: key, ...(value as Omit<Sale, 'id'>) })) : [];
@@ -126,12 +150,21 @@ export default function AdminDashboardPage() {
     const usersRef = ref(db, 'users');
 
     const unsubscribeUsers = onValue(usersRef, (snapshot) => {
+      console.log(
+        '[FIREBASE LISTENER - users] Fired — snapshot.exists():', snapshot.exists(),
+        'numChildren:', snapshot.exists() ? Object.keys(snapshot.val() ?? {}).length : 0,
+        'auth.uid:', auth?.uid,
+        'body.pointerEvents:', document.body.style.pointerEvents
+      );
+      const data = snapshot.val();
 
-        const data = snapshot.val();
+      const loadedPlayers: Player[] = data
+        ? Object.entries(data)
+            .filter(([_, value]: [string, any]) => !value.deleted)
+            .map(([uid, value]) => ({ uid, ...(value as Omit<Player, 'uid'>) }))
+        : [];
 
-        const loadedPlayers: Player[] = data ? Object.entries(data).map(([uid, value]) => ({ uid, ...(value as Omit<Player, 'uid'>) })) : [];
-
-        setPlayers(loadedPlayers);
+      setPlayers(loadedPlayers);
 
     });
 
@@ -139,6 +172,11 @@ export default function AdminDashboardPage() {
 
     const guidelinesRef = ref(db, 'guidelines');
     const unsubscribeGuidelines = onValue(guidelinesRef, (snapshot) => {
+      console.log(
+        '[FIREBASE LISTENER - guidelines] Fired — snapshot.exists():', snapshot.exists(),
+        'auth.uid:', auth?.uid,
+        'body.pointerEvents:', document.body.style.pointerEvents
+      );
       const data = snapshot.val();
       if (!data) {
         const defaultGuidelines = [
@@ -160,7 +198,7 @@ export default function AdminDashboardPage() {
     });
 
     return () => {
-
+      console.log('[ADMIN DASHBOARD USEEFFECT CLEANUP] Unsubscribing listeners');
       unsubscribeProducts();
 
       unsubscribeSales();
@@ -186,27 +224,93 @@ export default function AdminDashboardPage() {
 
 
 
-  const deleteProduct = (productId: string) => {
+  // Bug #6: Update product name and/or actual price
+  const updateProduct = (productId: string, updatedFields: { name: string; actualPrice: number }) => {
+    const db = getFirebaseDb();
+    const productRef = ref(db, `products/${productId}`);
+    update(productRef, updatedFields)
+      .then(() => {
+        toast({
+          title: 'Product Updated',
+          description: 'The product has been updated successfully.',
+        });
+      })
+      .catch((error) => {
+        toast({
+          title: 'Update Failed',
+          description: `An error occurred: ${error.message}`,
+          variant: 'destructive',
+        });
+      });
+  };
+
+
+
+  // Bug #7: Cascade delete — removes master product, all related sales, and all team inventory entries
+  const deleteProduct = async (productId: string) => {
 
     const db = getFirebaseDb();
 
-    const productRef = ref(db, `products/${productId}`);
+    try {
+      // 1. Remove master product record
+      await remove(ref(db, `products/${productId}`));
 
-    remove(productRef);
+      // 2. Remove all sales that reference this productId
+      const salesSnap = await get(ref(db, 'sales'));
+      if (salesSnap.exists()) {
+        const salesData = salesSnap.val();
+        const saleDeleteUpdates: Record<string, null> = {};
+        Object.entries(salesData).forEach(([saleId, saleVal]) => {
+          if ((saleVal as any).productId === productId) {
+            saleDeleteUpdates[saleId] = null;
+          }
+        });
+        if (Object.keys(saleDeleteUpdates).length > 0) {
+          await update(ref(db, 'sales'), saleDeleteUpdates);
+        }
+      }
 
-    toast({
+      // 3. Remove product from all teams' inventory
+      const invSnap = await get(ref(db, 'teamInventory'));
+      if (invSnap.exists()) {
+        const invData = invSnap.val();
+        const invDeleteUpdates: Record<string, null> = {};
+        Object.keys(invData).forEach((teamId) => {
+          if (invData[teamId]?.[productId] !== undefined) {
+            invDeleteUpdates[`${teamId}/${productId}`] = null;
+          }
+        });
+        if (Object.keys(invDeleteUpdates).length > 0) {
+          await update(ref(db, 'teamInventory'), invDeleteUpdates);
+        }
+      }
 
+      toast({
         title: 'Product Deleted',
-
-        description: 'The product has been removed from the list.',
-
-    })
+        description: 'The product and all related records have been permanently removed.',
+        variant: 'destructive',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Deletion Failed',
+        description: `An error occurred: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
 
   };
 
 
 
   const updateSale = (saleId: string, newSellingPrice: number, newProfit: number, newPaymentMethod?: 'cash' | 'qr') => {
+    if (isNaN(newSellingPrice) || newSellingPrice < 1 || newSellingPrice > 10000) {
+      toast({
+        title: 'Update Failed',
+        description: 'Maximum selling price is ₹10,000.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const db = getFirebaseDb();
 
@@ -252,153 +356,162 @@ export default function AdminDashboardPage() {
 
 
 
-  const updatePlayerTeamName = async (uid: string, newTeamName: string) => {
-
+  const removeProductFromTeam = (teamId: string, productId: string) => {
     const db = getFirebaseDb();
-
-    const userRef = ref(db, `users/${uid}`);
-
-    const snapshot = await get(userRef);
-
-    // Preserve existing teamId and isAdmin
-    const existingData = snapshot.exists() ? snapshot.val() : {};
-
-    update(userRef, {
-      name: newTeamName,
-      teamId: existingData.teamId || uid,
-      isAdmin: existingData.isAdmin === true,
-    })
-
-      .then(() => {
-
-        toast({
-
-          title: 'Player Updated',
-
-          description: "The player's team name has been successfully updated.",
-
+    const inventoryRef = ref(db, `teamInventory/${teamId}/${productId}`);
+    get(inventoryRef).then((snapshot) => {
+      const currentQty = snapshot.exists() ? (snapshot.val().quantity ?? 0) : 0;
+      set(inventoryRef, { quantity: currentQty, removed: true })
+        .then(() => {
+          toast({
+            title: 'Product Removed',
+            description: 'The product has been removed from this team\'s inventory.',
+          });
+        })
+        .catch((error) => {
+          toast({
+            title: 'Removal Failed',
+            description: `An error occurred: ${error.message}`,
+            variant: 'destructive',
+          });
         });
-
-      })
-
-      .catch((error) => {
-
-        toast({
-
-          title: 'Update Failed',
-
-          description: `An error occurred: ${error.message}`,
-
-          variant: 'destructive',
-
-        });
-
-      });
-
+    });
   };
 
 
 
-  const deletePlayer = async (uid: string) => {
-
-    const db = getFirebaseDb();
-
-
-
-    // 1. Remove user from 'users' node
-
-    const userRef = ref(db, `users/${uid}`);
-
-    await remove(userRef);
-
-
-
-    // 2. Find and remove all sales by that user
-
-    const salesRef = ref(db, 'sales');
-
-    const salesQuery = query(salesRef, orderByChild('userId'), equalTo(uid));
-
-    const snapshot = await get(salesQuery);
-
-    if (snapshot.exists()) {
-
-        const updates: Record<string, null> = {};
-
-        snapshot.forEach((childSnapshot) => {
-
-            updates[childSnapshot.key!] = null;
-
-        });
-
-        await update(ref(db, 'sales'), updates);
-
+  const updatePlayerTeamName = async (uid: string, newTeamName: string) => {
+    const trimmed = newTeamName.trim();
+    if (!trimmed) {
+      toast({
+        title: 'Invalid Team Name',
+        description: 'Team name cannot be empty.',
+        variant: 'destructive',
+      });
+      return;
     }
 
-
-
-    toast({
-
-        title: 'Player Removed',
-
-        description: 'The player and all their sales data have been removed. They will need to set a new team name if they log in again.',
-
-        variant: 'destructive',
-
-    });
-
-  };
-
-
-
-  const createPlayer = async (email: string, teamName: string) => {
+    const targetPlayer = players.find((p) => p.uid === uid);
+    const teamId = targetPlayer?.teamId || uid;
+    const db = getFirebaseDb();
 
     try {
+      const updates: Record<string, any> = {
+        [`users/${uid}/name`]: trimmed,
+      };
 
-      const auth = getFirebaseAuth();
-
-      const userCredential = await createUserWithEmailAndPassword(auth, email, 'tempPassword123');
-
-      const uid = userCredential.user.uid;
-
-      const db = getFirebaseDb();
-
-      const userRef = ref(db, `users/${uid}`);
-
-      await set(userRef, {
-
-        name: teamName,
-
-        email: email,
-
-        teamId: uid, // Use UID as teamId for simplicity
-
-        isAdmin: false, // Participants are not admins
-
+      // Also update teamName across any matching sales records in memory
+      sales.forEach((sale) => {
+        if (sale.userId === uid || (teamId && sale.teamId === teamId)) {
+          updates[`sales/${sale.id}/teamName`] = trimmed;
+        }
       });
+
+      await update(ref(db), updates);
 
       toast({
-
-        title: 'Player Created',
-
-        description: `Player ${teamName} has been created. They can now log in with their email. Please tell them to reset their password.`,
-
+        title: 'Player Updated',
+        description: `Team name has been updated to "${trimmed}".`,
       });
-
     } catch (error: any) {
-
       toast({
-
-        title: 'Creation Failed',
-
-        description: `An error occurred: ${error.message}`,
-
+        title: 'Update Failed',
+        description: getFriendlyAuthErrorMessage(error),
         variant: 'destructive',
-
       });
+      throw error;
+    }
+  };
 
+  const deletePlayer = async (uid: string) => {
+    if (auth?.uid && uid === auth.uid) {
+      toast({
+        title: 'Action Denied',
+        description: 'You cannot delete your own admin account.',
+        variant: 'destructive',
+      });
+      return;
     }
 
+    const db = getFirebaseDb();
+
+    // Resolve user details directly from in-memory players state
+    const targetPlayer = players.find((p) => p.uid === uid);
+    const email = targetPlayer?.email || '';
+    const teamName = targetPlayer?.name || '';
+    const teamId = targetPlayer?.teamId || uid;
+
+    const updates: Record<string, any> = {};
+
+    // 1. Mark user as deleted in 'users' node
+    updates[`users/${uid}`] = {
+      deleted: true,
+      email: email,
+      name: teamName,
+      teamId: teamId,
+      deletedAt: Date.now(),
+    };
+
+    // 2. Persistent deletion marker in 'deletedUsers'
+    updates[`deletedUsers/${uid}`] = {
+      deleted: true,
+      email: email.toLowerCase(),
+      deletedAt: Date.now(),
+    };
+
+    // 3. Target matching sales for removal directly from in-memory sales state
+    const matchingSales = sales.filter(
+      (sale) =>
+        sale.userId === uid ||
+        (teamId && sale.teamId === teamId) ||
+        (teamName && sale.teamName === teamName)
+    );
+    matchingSales.forEach((sale) => {
+      updates[`sales/${sale.id}`] = null;
+    });
+
+    // 4. Remove team inventory
+    if (teamId) {
+      updates[`teamInventory/${teamId}`] = null;
+    }
+    updates[`teamInventory/${uid}`] = null;
+
+    try {
+      // Execute single atomic multi-path update
+      await update(ref(db), updates);
+
+      toast({
+        title: 'Player Removed',
+        description: 'The player and all their sales data have been permanently removed.',
+        variant: 'destructive',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Delete Failed',
+        description: getFriendlyAuthErrorMessage(error),
+        variant: 'destructive',
+      });
+      throw error;
+    }
+  };
+
+  const createPlayer = async (email: string, teamName: string, password: string) => {
+    try {
+      await createPlayerAccount(email, teamName, password);
+
+      toast({
+        title: 'Player Created',
+        description: `Player "${teamName}" (${email}) has been created successfully.`,
+      });
+    } catch (error: any) {
+      const friendlyMsg = getFriendlyAuthErrorMessage(error);
+      toast({
+        title: 'Creation Failed',
+        description: friendlyMsg,
+        variant: 'destructive',
+      });
+      throw error;
+    }
   };
 
 
@@ -587,7 +700,7 @@ export default function AdminDashboardPage() {
 
                     <h2 className="font-headline text-2xl font-bold">Product Management</h2>
 
-                    <ProductTable products={products} onDelete={deleteProduct} isAdmin={true} />
+                    <ProductTable products={products} onDelete={deleteProduct} onEdit={updateProduct} isAdmin={true} />
 
                 </div>
 
@@ -713,7 +826,13 @@ export default function AdminDashboardPage() {
 
         <TabsContent value="leaderboard" className="mt-8">
 
-            <Leaderboard sales={sales} isAdmin={true} onUpdateSale={updateSale} />
+            <Leaderboard
+              sales={sales}
+              isAdmin={true}
+              onUpdateSale={updateSale}
+              onRemoveProduct={removeProductFromTeam}
+              totalProductsCount={products.length}
+            />
 
         </TabsContent>
 

@@ -18,92 +18,104 @@ import { Shield, Eye, EyeOff } from 'lucide-react';
 
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
-import { getFirebaseAuth } from '@/lib/firebase';
-
+import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
+import { ref, get } from 'firebase/database';
 import { useRouter } from 'next/navigation';
-
 import { useAuth } from '@/contexts/auth-context';
 
-
-
 export default function AdminLoginPage() {
-
   const router = useRouter();
-
   const { toast } = useToast();
-
   const { auth, isLoading } = useAuth();
-
   const [password, setPassword] = useState('');
-
   const [email, setEmail] = useState('');
-
   const [showPassword, setShowPassword] = useState(false);
 
-
-
   useEffect(() => {
-
     if (isLoading) return;
-
     if (auth) {
-
       console.log('[AdminLogin] auth context:', auth);
-
       if (auth.type === 'admin') {
-
         router.push('/admin/dashboard');
-
       } else {
-
-        // Player trying to use Admin Login - deny access
-
-        toast({
-
-          title: 'Access Denied',
-
-          description: 'You do not have admin privileges.',
-
-          variant: 'destructive',
-
+        // Player attempting to use Admin Login - sign out & deny access (do NOT redirect to player login)
+        const firebaseAuth = getFirebaseAuth();
+        signOut(firebaseAuth).then(() => {
+          toast({
+            title: 'Access Denied',
+            description: 'You do not have admin privileges.',
+            variant: 'destructive',
+          });
         });
-
-        router.push('/login');
-
       }
-
     }
-
   }, [auth, isLoading, router, toast]);
 
-
-
   const handleLogin = async (e: React.FormEvent) => {
-
     e.preventDefault();
-
-    try {
-
-      const auth = getFirebaseAuth();
-
-      await signInWithEmailAndPassword(auth, email, password);
-
-      // The useEffect will handle redirection based on isAdmin status
-
-    } catch (error) {
-
+    if (!email.trim() || !password.trim()) {
       toast({
-
-        title: 'Login Failed',
-
-        description: 'Incorrect email or password.',
-
+        title: 'Credentials required',
+        description: 'Please enter your email and password.',
         variant: 'destructive',
-
       });
-
+      return;
     }
 
+    const firebaseAuth = getFirebaseAuth();
+    try {
+      await signInWithEmailAndPassword(firebaseAuth, email, password);
+      const user = firebaseAuth.currentUser;
+      if (user) {
+        const db = getFirebaseDb();
+        const userRef = ref(db, `users/${user.uid}`);
+        const deletedUserRef = ref(db, `deletedUsers/${user.uid}`);
+
+        const [snapshot, deletedSnapshot] = await Promise.all([
+          get(userRef),
+          get(deletedUserRef),
+        ]);
+
+        const userData = snapshot.val();
+        const isDeleted = (userData && userData.deleted === true) || deletedSnapshot.exists();
+
+        if (isDeleted) {
+          await signOut(firebaseAuth);
+          toast({
+            title: 'Account Deleted',
+            description: 'This account has been permanently deleted by an administrator.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        const adminEnv = process.env.NEXT_PUBLIC_ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+        const adminEmails = adminEnv
+          ? adminEnv.split(',').map((e) => e.trim().toLowerCase()).filter((e) => e)
+          : ['admin@example.com'];
+        const isEmailAdmin = user.email ? adminEmails.includes(user.email.toLowerCase()) : false;
+        const isAdmin = (userData && userData.isAdmin === true) || isEmailAdmin;
+
+        if (!isAdmin) {
+          await signOut(firebaseAuth);
+          toast({
+            title: 'Access Denied',
+            description: 'You do not have admin privileges.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        router.push('/admin/dashboard');
+      }
+    } catch (error: any) {
+      console.error('Admin Login Error:', error);
+      toast({
+        title: 'Login Failed',
+        description: 'Incorrect email or password.',
+        variant: 'destructive',
+      });
+    }
   };
 
 

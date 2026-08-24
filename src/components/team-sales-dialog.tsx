@@ -21,10 +21,11 @@ interface TeamSalesDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdateSale?: (saleId: string, newSellingPrice: number, newProfit: number, newPaymentMethod?: 'cash' | 'qr') => void;
+  onRemoveProduct?: (teamId: string, productId: string) => void;
   isAdmin?: boolean;
 }
 
-export function TeamSalesDialog({ teamName, sales, isOpen, onOpenChange, onUpdateSale, isAdmin = false }: TeamSalesDialogProps) {
+export function TeamSalesDialog({ teamName, sales, isOpen, onOpenChange, onUpdateSale, onRemoveProduct, isAdmin = false }: TeamSalesDialogProps) {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
 
   const sortedSales = [...sales].sort((a, b) => b.timestamp - a.timestamp);
@@ -122,6 +123,7 @@ export function TeamSalesDialog({ teamName, sales, isOpen, onOpenChange, onUpdat
           isOpen={!!editingSale}
           onOpenChange={(open) => !open && setEditingSale(null)}
           onUpdate={handleUpdate}
+          onRemoveProduct={onRemoveProduct}
         />
       )}
     </>

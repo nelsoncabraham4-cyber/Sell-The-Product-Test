@@ -4,6 +4,10 @@ import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/header';
 import './globals.css';
 
+// DEV-ONLY: freeze diagnostic — tree-shaken out of production
+import { FreezeDiagnostic } from '@/components/freeze-diagnostic';
+const IS_DEV = process.env.NODE_ENV === 'development';
+
 export const metadata: Metadata = {
   title: 'Sell The Product',
   description: 'Sell products and compete on the leaderboard.',
@@ -23,6 +27,8 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col">
         <AuthProvider>
+          {/* DEV-ONLY: auto-injects window.__freezeSnap() and body-style observer */}
+          {IS_DEV && <FreezeDiagnostic />}
           <Header />
           <main className="flex-grow container mx-auto px-4 py-8">
             {children}
@@ -33,3 +39,4 @@ export default function RootLayout({
     </html>
   );
 }
+

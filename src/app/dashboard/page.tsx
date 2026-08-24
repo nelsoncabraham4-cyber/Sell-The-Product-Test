@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
 import type { Product, Sale, TeamStatistics } from '@/lib/types';
 import ProductTable from '@/components/product-table';
 import Leaderboard from '@/components/leaderboard';
@@ -19,10 +20,12 @@ import { calculateTeamStatistics } from '@/lib/statistics';
 export default function DashboardPage() {
   const { auth, isLoading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [guidelines, setGuidelines] = useState<Array<{ id: string; text: string }>>([]);
+  const [masterProductsCount, setMasterProductsCount] = useState<number>(0);
 
   useEffect(() => {
     if (isLoading) {
@@ -33,7 +36,7 @@ export default function DashboardPage() {
     } else if (auth.type === 'admin') {
       router.push('/admin/dashboard');
     } else if (auth.type === 'user' && !auth.name) {
-      router.push('/set-team-name');
+      router.push('/player/select-team');
     }
   }, [auth, isLoading, router]);
 
@@ -46,22 +49,29 @@ useEffect(() => {
   const productsRef = ref(db, 'products');
   const teamInvRef = ref(db, `teamInventory/${teamId}`);
 
-  const combineData = (prodSnap, invSnap) => {
+  const combineData = (prodSnap: any, invSnap: any) => {
     const prodData = prodSnap.val();
     const invData = invSnap ? invSnap.val() : {};
     const combined: Product[] = prodData
-      ? Object.entries(prodData).map(([key, value]) => {
-          const master = value as any;
-          const teamQty = invData?.[key]?.quantity;
-          return {
-            id: key,
-            name: master.name,
-            actualPrice: master.actualPrice,
-            quantity: typeof teamQty === 'number' ? teamQty : (master.quantity ?? 0),
-          } as Product;
-        })
+      ? Object.entries(prodData)
+          .map(([key, value]) => {
+            const master = value as any;
+            const teamQty = invData?.[key]?.quantity;
+            const isRemoved = invData?.[key]?.removed === true;
+            return {
+              id: key,
+              name: master.name,
+              actualPrice: master.actualPrice,
+              quantity: typeof teamQty === 'number' ? teamQty : (master.quantity ?? 0),
+              removed: isRemoved,
+            } as any;
+          })
+          .filter((p) => !p.removed)
       : [];
     setProducts(combined);
+    // Update master product count
+    const masterCount = prodData ? Object.keys(prodData).length : 0;
+    setMasterProductsCount(masterCount);
     // Create missing team inventory entries with initial qty
     if (prodData) {
       Object.entries(prodData).forEach(([key, val]) => {
@@ -121,6 +131,14 @@ useEffect(() => {
       console.warn('[handleSale] no auth, abort');
       return;
     }
+    if (isNaN(sale.sellingPrice) || sale.sellingPrice < 1 || sale.sellingPrice > 10000) {
+      toast({
+        title: 'Sale Failed',
+        description: 'Maximum selling price is ₹10,000.',
+        variant: 'destructive',
+      });
+      return;
+    }
     const db = getFirebaseDb();
     const teamId = auth.teamId;
     const inventoryRef = ref(db, `teamInventory/${teamId}/${sale.productId}`);
@@ -143,20 +161,32 @@ useEffect(() => {
     });
     console.log('[handleSale] transaction result', result);
     if (!result.committed) {
-      alert('Product is out of stock. Sale not recorded.');
+      toast({
+        title: 'Out of Stock',
+        description: 'Product is out of stock. Sale not recorded.',
+        variant: 'destructive',
+      });
       return;
     }
     const updatedQty = result.snapshot?.val()?.quantity;
     // If transaction failed to obtain a quantity (e.g., permission error) or went negative
     if (updatedQty === undefined) {
       console.error('[handleSale] transaction returned undefined quantity');
-      alert('Unable to process sale. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'Unable to process sale. Please try again.',
+        variant: 'destructive',
+      });
       return;
     }
     // Only treat as out‑of‑stock when quantity would become negative (should not happen)
     if (updatedQty < 0) {
       console.warn('[handleSale] quantity negative after transaction');
-      alert('Product is out of stock. Sale not recorded.');
+      toast({
+        title: 'Out of Stock',
+        description: 'Product is out of stock. Sale not recorded.',
+        variant: 'destructive',
+      });
       return;
     }
     // Record the sale – wrap in try/catch to surface errors
@@ -178,9 +208,8 @@ useEffect(() => {
   }, [sales, auth]);
 
   const availableProducts = useMemo(() => {
-    const soldProductIds = new Set(userSales.map(sale => sale.productId));
-    return products.filter(product => !soldProductIds.has(product.id));
-  }, [products, userSales]);
+    return products;
+  }, [products]);
 
   const teamStats = useMemo(() => {
     if (!auth || !auth.name) return null;
@@ -351,7 +380,7 @@ useEffect(() => {
           </Card>
         </TabsContent>
         <TabsContent value="leaderboard" className="mt-8">
-          <Leaderboard sales={sales} isAdmin={false} userTeamName={auth.name} />
+          <Leaderboard sales={sales} isAdmin={false} userTeamName={auth.name} totalProductsCount={masterProductsCount} />
         </TabsContent>
       </Tabs>
     </div>
