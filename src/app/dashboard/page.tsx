@@ -1,21 +1,25 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import type { Product, Sale, TeamStatistics } from '@/lib/types';
+import type { Product, Sale } from '@/lib/types';
 import ProductTable from '@/components/product-table';
-import Leaderboard from '@/components/leaderboard';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, TrendingUp, DollarSign, Wallet, Package, AlertCircle, Check, X } from 'lucide-react';
+import { ShoppingBag, TrendingUp, DollarSign, Wallet, Package, Check, X } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getFirebaseDb } from '@/lib/firebase';
 import { ref, onValue, push, runTransaction, get, set } from 'firebase/database';
 import { calculateTeamStatistics } from '@/lib/statistics';
+import { prefetchQrCode } from '@/lib/qr-service';
 
+const Leaderboard = dynamic(() => import('@/components/leaderboard'), {
+  ssr: false,
+});
 
 export default function DashboardPage() {
   const { auth, isLoading } = useAuth();
@@ -26,6 +30,13 @@ export default function DashboardPage() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [guidelines, setGuidelines] = useState<Array<{ id: string; text: string }>>([]);
   const [masterProductsCount, setMasterProductsCount] = useState<number>(0);
+
+  // Pre-warm QR code in background as soon as dashboard loads
+  useEffect(() => {
+    if (auth?.type === 'user') {
+      prefetchQrCode();
+    }
+  }, [auth]);
 
   useEffect(() => {
     if (isLoading) {
@@ -40,60 +51,69 @@ export default function DashboardPage() {
     }
   }, [auth, isLoading, router]);
 
-// Load master products and per-team inventory, then merge
-useEffect(() => {
-  if (!auth) return;
-  const db = getFirebaseDb();
-  const teamId = auth.teamId;
-  if (!teamId) return;
-  const productsRef = ref(db, 'products');
-  const teamInvRef = ref(db, `teamInventory/${teamId}`);
+  // Efficient dual-listener merge for master products and per-team inventory
+  useEffect(() => {
+    if (!auth) return;
+    const db = getFirebaseDb();
+    const teamId = auth.teamId;
+    if (!teamId) return;
 
-  const combineData = (prodSnap: any, invSnap: any) => {
-    const prodData = prodSnap.val();
-    const invData = invSnap ? invSnap.val() : {};
-    const combined: Product[] = prodData
-      ? Object.entries(prodData)
-          .map(([key, value]) => {
-            const master = value as any;
-            const teamQty = invData?.[key]?.quantity;
-            const isRemoved = invData?.[key]?.removed === true;
-            return {
-              id: key,
-              name: master.name,
-              actualPrice: master.actualPrice,
-              quantity: typeof teamQty === 'number' ? teamQty : (master.quantity ?? 0),
-              removed: isRemoved,
-            } as any;
-          })
-          .filter((p) => !p.removed)
-      : [];
-    setProducts(combined);
-    // Update master product count
-    const masterCount = prodData ? Object.keys(prodData).length : 0;
-    setMasterProductsCount(masterCount);
-    // Create missing team inventory entries with initial qty
-    if (prodData) {
-      Object.entries(prodData).forEach(([key, val]) => {
-        if (!invData?.[key]) {
-          const initQty = (val as any).quantity ?? 0;
-          set(ref(db, `teamInventory/${teamId}/${key}`), { quantity: initQty });
-        }
-      });
-    }
-  };
+    let prodData: any = null;
+    let invData: any = null;
+    let hasProd = false;
 
-  const unsubProd = onValue(productsRef, (pSnap) => {
-    get(teamInvRef).then((iSnap) => combineData(pSnap, iSnap));
-  });
-  const unsubInv = onValue(teamInvRef, (iSnap) => {
-    get(productsRef).then((pSnap) => combineData(pSnap, iSnap));
-  });
-  return () => {
-    unsubProd();
-    unsubInv();
-  };
-}, [auth]);
+    const combineData = () => {
+      if (!hasProd) return;
+      const combined: Product[] = prodData
+        ? Object.entries(prodData)
+            .map(([key, value]) => {
+              const master = value as any;
+              const teamQty = invData?.[key]?.quantity;
+              const isRemoved = invData?.[key]?.removed === true;
+              return {
+                id: key,
+                name: master.name,
+                actualPrice: master.actualPrice,
+                quantity: typeof teamQty === 'number' ? teamQty : (master.quantity ?? 0),
+                removed: isRemoved,
+              } as any;
+            })
+            .filter((p) => !p.removed)
+        : [];
+      setProducts(combined);
+
+      const masterCount = prodData ? Object.keys(prodData).length : 0;
+      setMasterProductsCount(masterCount);
+
+      if (prodData && invData !== null) {
+        Object.entries(prodData).forEach(([key, val]) => {
+          if (!invData?.[key]) {
+            const initQty = (val as any).quantity ?? 0;
+            set(ref(db, `teamInventory/${teamId}/${key}`), { quantity: initQty });
+          }
+        });
+      }
+    };
+
+    const productsRef = ref(db, 'products');
+    const teamInvRef = ref(db, `teamInventory/${teamId}`);
+
+    const unsubProd = onValue(productsRef, (pSnap) => {
+      prodData = pSnap.val();
+      hasProd = true;
+      combineData();
+    });
+
+    const unsubInv = onValue(teamInvRef, (iSnap) => {
+      invData = iSnap.val() || {};
+      combineData();
+    });
+
+    return () => {
+      unsubProd();
+      unsubInv();
+    };
+  }, [auth]);
 
   // Listen to sales in real time
   useEffect(() => {
@@ -125,7 +145,7 @@ useEffect(() => {
     return () => unsub();
   }, [auth]);
 
-  const handleSale = async (sale: Omit<Sale, 'id'>) => {
+  const handleSale = useCallback(async (sale: Omit<Sale, 'id'>) => {
     console.log('[handleSale] invoked', sale);
     if (!auth) {
       console.warn('[handleSale] no auth, abort');
@@ -198,7 +218,8 @@ useEffect(() => {
       console.error('[handleSale] failed to push sale', e);
       alert('Failed to record sale. Please check your connection.');
     }
-  };
+  }, [auth, toast]);
+
   
   const userSales = useMemo(() => {
     if (!auth) return [];

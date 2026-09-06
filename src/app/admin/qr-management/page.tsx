@@ -79,9 +79,12 @@ export default function QRManagementPage() {
       console.log('[QR Upload] Reading file via FileReader as Data URL...');
       const dataUrl = await readFileAsDataUrl(file);
 
-      // 2. Save Data URL directly to Realtime Database at /qrCodeUrl
+      // 2. Save Data URL directly to Realtime Database at /qrCodeUrl and mirror to /qrImage
       const db = getFirebaseDb();
-      await set(dbRef(db, 'qrCodeUrl'), dataUrl);
+      await Promise.all([
+        set(dbRef(db, 'qrCodeUrl'), dataUrl),
+        set(dbRef(db, 'qrImage'), dataUrl),
+      ]);
       setCurrentUrl(dataUrl);
 
       toast({

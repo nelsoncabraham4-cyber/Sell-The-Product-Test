@@ -1,4 +1,4 @@
-import { initializeApp, getApp, getApps } from 'firebase/app';
+import { initializeApp, getApp, getApps } from "firebase/app";
 import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
 import { getAuth } from "firebase/auth";
@@ -13,18 +13,44 @@ const firebaseConfig = {
   databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
 };
 
+// ഇത് Test Firebase project ആണോ എന്ന് Console-ൽ കാണാൻ
+console.log("🔥 Firebase Project:", firebaseConfig.projectId);
+console.log("🔥 Firebase Auth Domain:", firebaseConfig.authDomain);
+
+let appInstance: ReturnType<typeof initializeApp> | null = null;
+let authInstance: ReturnType<typeof getAuth> | null = null;
+let dbInstance: ReturnType<typeof getDatabase> | null = null;
+let storageInstance: ReturnType<typeof getStorage> | null = null;
+
 function getFirebaseApp() {
-  return !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  if (!appInstance) {
+    appInstance =
+      !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  }
+
+  return appInstance;
 }
 
 export function getFirebaseAuth() {
-  return getAuth(getFirebaseApp());
+  if (!authInstance) {
+    authInstance = getAuth(getFirebaseApp());
+  }
+
+  return authInstance;
 }
 
 export function getFirebaseDb() {
-  return getDatabase(getFirebaseApp());
+  if (!dbInstance) {
+    dbInstance = getDatabase(getFirebaseApp());
+  }
+
+  return dbInstance;
 }
 
 export function getFirebaseStorage() {
-  return getStorage(getFirebaseApp());
+  if (!storageInstance) {
+    storageInstance = getStorage(getFirebaseApp());
+  }
+
+  return storageInstance;
 }

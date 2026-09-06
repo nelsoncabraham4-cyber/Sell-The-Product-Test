@@ -47,8 +47,12 @@ export default function UserLoginPage() {
           router.push('/admin/login');
         });
       } else {
-        // Player accounts should ALWAYS go to team selection screen.
-        router.push('/player/select-team');
+        // Player accounts: if team name exists, navigate to dashboard, otherwise to select-team
+        if (auth.name) {
+          router.push('/dashboard');
+        } else {
+          router.push('/player/select-team');
+        }
       }
     }
   }, [auth, isLoading, router, toast]);
@@ -56,7 +60,8 @@ export default function UserLoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email.trim() || !password.trim()) {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password.trim()) {
       toast({
         title: 'Email and Password required',
         description: 'Please enter your credentials.',
@@ -68,7 +73,7 @@ export default function UserLoginPage() {
     const firebaseAuth = getFirebaseAuth();
 
     try {
-      await signInWithEmailAndPassword(firebaseAuth, email, password);
+      await signInWithEmailAndPassword(firebaseAuth, trimmedEmail, password);
 
       // After sign-in, verify user status & role from Realtime Database
       const user = firebaseAuth.currentUser;
@@ -118,10 +123,6 @@ export default function UserLoginPage() {
           return;
         }
       }
-
-      // Normal player:
-      // Auth context will detect the login and redirect
-      // to /set-team-name instead of directly opening the team dashboard.
     } catch (error: any) {
       console.error('Login Error:', error.code, error.message);
 
@@ -133,15 +134,10 @@ export default function UserLoginPage() {
     }
   };
 
-  // Clear form fields on mount and clear any delayed browser autofill
+  // Clear form fields on mount
   useEffect(() => {
     setEmail('');
     setPassword('');
-    const timer = setTimeout(() => {
-      setEmail('');
-      setPassword('');
-    }, 100);
-    return () => clearTimeout(timer);
   }, []);
 
   if (isLoading || auth) {

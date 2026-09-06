@@ -1,8 +1,23 @@
 import type { Metadata } from 'next';
+import { Inter, Poppins } from 'next/font/google';
 import { AuthProvider } from '@/contexts/auth-context';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/header';
 import './globals.css';
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  variable: '--font-poppins',
+  display: 'swap',
+});
 
 // DEV-ONLY: freeze diagnostic — tree-shaken out of production
 import { FreezeDiagnostic } from '@/components/freeze-diagnostic';
@@ -19,12 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
       <body className="font-body antialiased min-h-screen flex flex-col">
         <AuthProvider>
           {/* DEV-ONLY: auto-injects window.__freezeSnap() and body-style observer */}
@@ -39,4 +49,5 @@ export default function RootLayout({
     </html>
   );
 }
+
 

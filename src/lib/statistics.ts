@@ -26,21 +26,29 @@ export interface OverallStatistics {
  * Calculate statistics for a specific team from their sales
  */
 export function calculateTeamStatistics(teamName: string, sales: Sale[]): TeamStatistics {
-  const teamSales = sales.filter(sale => sale.teamName === teamName);
-  
-  const productsSold = teamSales.length;
-  const turnover = teamSales.reduce((sum, sale) => sum + sale.sellingPrice, 0);
-  const cashCollection = teamSales
-    .filter(sale => sale.paymentMethod === 'cash')
-    .reduce((sum, sale) => sum + sale.sellingPrice, 0);
-  const qrCollection = teamSales
-    .filter(sale => sale.paymentMethod === 'qr')
-    .reduce((sum, sale) => sum + sale.sellingPrice, 0);
-  const totalCollection = cashCollection + qrCollection;
-  const profit = teamSales.reduce((sum, sale) => sum + sale.profit, 0);
-  const loss = teamSales
-    .filter(sale => sale.profit < 0)
-    .reduce((sum, sale) => sum + Math.abs(sale.profit), 0);
+  let productsSold = 0;
+  let turnover = 0;
+  let cashCollection = 0;
+  let qrCollection = 0;
+  let profit = 0;
+  let loss = 0;
+
+  for (let i = 0; i < sales.length; i++) {
+    const sale = sales[i];
+    if (sale.teamName === teamName) {
+      productsSold++;
+      turnover += sale.sellingPrice;
+      if (sale.paymentMethod === 'cash') {
+        cashCollection += sale.sellingPrice;
+      } else if (sale.paymentMethod === 'qr') {
+        qrCollection += sale.sellingPrice;
+      }
+      profit += sale.profit;
+      if (sale.profit < 0) {
+        loss += Math.abs(sale.profit);
+      }
+    }
+  }
 
   return {
     teamName,
@@ -48,7 +56,7 @@ export function calculateTeamStatistics(teamName: string, sales: Sale[]): TeamSt
     turnover,
     cashCollection,
     qrCollection,
-    totalCollection,
+    totalCollection: cashCollection + qrCollection,
     profit,
     loss,
   };
@@ -60,18 +68,25 @@ export function calculateTeamStatistics(teamName: string, sales: Sale[]): TeamSt
 export function calculateOverallStatistics(sales: Sale[]): OverallStatistics {
   const totalProductsSold = sales.length;
   const totalTransactions = sales.length;
-  const totalTurnover = sales.reduce((sum, sale) => sum + sale.sellingPrice, 0);
-  const totalCashCollection = sales
-    .filter(sale => sale.paymentMethod === 'cash')
-    .reduce((sum, sale) => sum + sale.sellingPrice, 0);
-  const totalQrCollection = sales
-    .filter(sale => sale.paymentMethod === 'qr')
-    .reduce((sum, sale) => sum + sale.sellingPrice, 0);
-  const totalCollection = totalCashCollection + totalQrCollection;
-  const totalProfit = sales.reduce((sum, sale) => sum + sale.profit, 0);
-  const totalLoss = sales
-    .filter(sale => sale.profit < 0)
-    .reduce((sum, sale) => sum + Math.abs(sale.profit), 0);
+  let totalTurnover = 0;
+  let totalCashCollection = 0;
+  let totalQrCollection = 0;
+  let totalProfit = 0;
+  let totalLoss = 0;
+
+  for (let i = 0; i < sales.length; i++) {
+    const sale = sales[i];
+    totalTurnover += sale.sellingPrice;
+    if (sale.paymentMethod === 'cash') {
+      totalCashCollection += sale.sellingPrice;
+    } else if (sale.paymentMethod === 'qr') {
+      totalQrCollection += sale.sellingPrice;
+    }
+    totalProfit += sale.profit;
+    if (sale.profit < 0) {
+      totalLoss += Math.abs(sale.profit);
+    }
+  }
 
   return {
     totalProductsSold,
@@ -79,16 +94,53 @@ export function calculateOverallStatistics(sales: Sale[]): OverallStatistics {
     totalTurnover,
     totalCashCollection,
     totalQrCollection,
-    totalCollection,
+    totalCollection: totalCashCollection + totalQrCollection,
     totalProfit,
     totalLoss,
   };
 }
 
 /**
- * Calculate statistics for all teams
+ * Calculate statistics for all teams in a single pass O(N)
  */
 export function calculateAllTeamStatistics(sales: Sale[]): TeamStatistics[] {
-  const teamNames = [...new Set(sales.map(sale => sale.teamName))];
-  return teamNames.map(teamName => calculateTeamStatistics(teamName, sales));
+  const teamMap = new Map<string, TeamStatistics>();
+
+  for (let i = 0; i < sales.length; i++) {
+    const sale = sales[i];
+    let stats = teamMap.get(sale.teamName);
+    if (!stats) {
+      stats = {
+        teamName: sale.teamName,
+        productsSold: 0,
+        turnover: 0,
+        cashCollection: 0,
+        qrCollection: 0,
+        totalCollection: 0,
+        profit: 0,
+        loss: 0,
+      };
+      teamMap.set(sale.teamName, stats);
+    }
+
+    stats.productsSold++;
+    stats.turnover += sale.sellingPrice;
+    if (sale.paymentMethod === 'cash') {
+      stats.cashCollection += sale.sellingPrice;
+    } else if (sale.paymentMethod === 'qr') {
+      stats.qrCollection += sale.sellingPrice;
+    }
+    stats.profit += sale.profit;
+    if (sale.profit < 0) {
+      stats.loss += Math.abs(sale.profit);
+    }
+  }
+
+  const result: TeamStatistics[] = [];
+  teamMap.forEach((stats) => {
+    stats.totalCollection = stats.cashCollection + stats.qrCollection;
+    result.push(stats);
+  });
+
+  return result;
 }

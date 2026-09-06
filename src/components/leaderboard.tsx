@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
+import dynamic from 'next/dynamic';
 import type { Sale } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Crown, Trophy } from 'lucide-react';
-import { TeamSalesDialog } from './team-sales-dialog';
 import { calculateAllTeamStatistics } from '@/lib/statistics';
+
+const TeamSalesDialog = dynamic(() => import('./team-sales-dialog').then((mod) => mod.TeamSalesDialog), {
+  ssr: false,
+});
 
 interface LeaderboardProps {
   sales: Sale[];
@@ -17,31 +21,30 @@ interface LeaderboardProps {
   totalProductsCount?: number;
 }
 
-export default function Leaderboard({ sales, isAdmin = false, userTeamName, onUpdateSale, onRemoveProduct, totalProductsCount }: LeaderboardProps) {
+function LeaderboardComponent({ sales, isAdmin = false, userTeamName, onUpdateSale, onRemoveProduct, totalProductsCount }: LeaderboardProps) {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 
-  const teamStatistics = calculateAllTeamStatistics(sales);
+  const sortedTeams = useMemo(() => {
+    const teamStatistics = calculateAllTeamStatistics(sales);
+    const highestTurnover = Math.max(...teamStatistics.map(t => t.turnover), 0);
 
-  // Compute scores per team
-  const highestTurnover = Math.max(...teamStatistics.map(t => t.turnover), 0);
+    const enrichedTeams = teamStatistics.map(team => {
+      const teamSales = sales.filter(sale => sale.teamName === team.teamName);
+      const uniqueProductsSold = new Set(teamSales.map(s => s.productId)).size;
+      const salesScore = highestTurnover > 0 ? (team.turnover / highestTurnover) * 100 : 0;
+      const coverageScore = totalProductsCount && totalProductsCount > 0 ? (uniqueProductsSold / totalProductsCount) * 100 : 0;
+      const finalScore = salesScore * 0.8 + coverageScore * 0.2;
+      return {
+        ...team,
+        uniqueProductsSold,
+        salesScore,
+        coverageScore,
+        finalScore,
+      };
+    });
 
-  const enrichedTeams = teamStatistics.map(team => {
-    const teamSales = sales.filter(sale => sale.teamName === team.teamName);
-    const uniqueProductsSold = new Set(teamSales.map(s => s.productId)).size;
-    const salesScore = highestTurnover > 0 ? (team.turnover / highestTurnover) * 100 : 0;
-    const coverageScore = totalProductsCount && totalProductsCount > 0 ? (uniqueProductsSold / totalProductsCount) * 100 : 0;
-    const finalScore = salesScore * 0.8 + coverageScore * 0.2;
-    return {
-      ...team,
-      uniqueProductsSold,
-      salesScore,
-      coverageScore,
-      finalScore,
-    };
-  });
-
-  const sortedTeams = enrichedTeams.sort((a, b) => b.finalScore - a.finalScore);
-
+    return enrichedTeams.sort((a, b) => b.finalScore - a.finalScore);
+  }, [sales, totalProductsCount]);
 
   const getRankColor = (rank: number) => {
     if (rank === 0) return 'text-amber-500';
@@ -56,7 +59,11 @@ export default function Leaderboard({ sales, isAdmin = false, userTeamName, onUp
     }
   };
 
-  const teamSales = sales.filter(sale => sale.teamName === selectedTeam);
+  const teamSales = useMemo(() => {
+    if (!selectedTeam) return [];
+    return sales.filter(sale => sale.teamName === selectedTeam);
+  }, [sales, selectedTeam]);
+
 
   return (
     <>
@@ -146,3 +153,7 @@ export default function Leaderboard({ sales, isAdmin = false, userTeamName, onUp
     </>
   );
 }
+
+const Leaderboard = memo(LeaderboardComponent);
+export default Leaderboard;
+

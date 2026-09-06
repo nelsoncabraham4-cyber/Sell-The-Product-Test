@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import type { Product, Sale } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SellProductDialog } from './sell-product-dialog';
+import { QRPaymentModal } from './qr-payment-modal';
 import { Pencil, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,7 +40,7 @@ interface ProductTableProps {
   isAdmin: boolean;
 }
 
-export default function ProductTable({ products, onSale, onDelete, onEdit, isAdmin }: ProductTableProps) {
+function ProductTableComponent({ products, onSale, onDelete, onEdit, isAdmin }: ProductTableProps) {
   const { toast } = useToast();
 
   // Sell dialog
@@ -53,12 +54,30 @@ export default function ProductTable({ products, onSale, onDelete, onEdit, isAdm
   // Delete confirmation dialog (Bug #7)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
-  const handleSale = (sale: Omit<Sale, 'id'>) => {
+  // QR payment modal state managed at table level so closing SellProductDialog does not destroy it
+  const [pendingQrSale, setPendingQrSale] = useState<Omit<Sale, 'id'> | null>(null);
+  const [isQrModalOpen, setIsQrModalOpen] = useState<boolean>(false);
+
+  const handleSale = useCallback((sale: Omit<Sale, 'id'>) => {
     if (onSale) {
       onSale(sale);
     }
     setSelectedProduct(null);
-  };
+  }, [onSale]);
+
+  const handleQrSaleRequest = useCallback((sale: Omit<Sale, 'id'>) => {
+    setPendingQrSale(sale);
+    setIsQrModalOpen(true);
+  }, []);
+
+  const handleQrSaleConfirm = useCallback((confirmedSale: Omit<Sale, 'id'>) => {
+    if (onSale) {
+      onSale(confirmedSale);
+    }
+    setIsQrModalOpen(false);
+    setPendingQrSale(null);
+  }, [onSale]);
+
 
   // --- Bug #6: Edit handlers ---
   const handleEditClick = (product: Product) => {
@@ -188,10 +207,33 @@ export default function ProductTable({ products, onSale, onDelete, onEdit, isAdm
         <SellProductDialog
           product={selectedProduct}
           onSale={handleSale}
+          onQrSale={handleQrSaleRequest}
           isOpen={!!selectedProduct}
           onOpenChange={(open) => {
             if (!open) setSelectedProduct(null);
           }}
+        />
+      )}
+
+      {/* QR Payment Modal */}
+      {pendingQrSale && (
+        <QRPaymentModal
+          open={isQrModalOpen}
+          onOpenChange={(open) => {
+            setIsQrModalOpen(open);
+            if (!open) {
+              setPendingQrSale(null);
+              if (typeof document !== 'undefined') {
+                setTimeout(() => {
+                  if (document.body.style.pointerEvents === 'none') {
+                    document.body.style.pointerEvents = '';
+                  }
+                }, 100);
+              }
+            }
+          }}
+          sale={pendingQrSale}
+          onConfirm={handleQrSaleConfirm}
         />
       )}
 
@@ -261,3 +303,7 @@ export default function ProductTable({ products, onSale, onDelete, onEdit, isAdm
     </>
   );
 }
+
+const ProductTable = memo(ProductTableComponent);
+export default ProductTable;
+

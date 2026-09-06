@@ -10,36 +10,30 @@ import { useAuth } from '@/contexts/auth-context';
 import Link from "next/link";
 
 import type { Product, Sale, Player, OverallStatistics, TeamStatistics } from '@/lib/types';
+import dynamic from 'next/dynamic';
 
 import ProductTable from '@/components/product-table';
-
-import Leaderboard from '@/components/leaderboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 import ProductForm from '@/components/product-form';
-
-import SalesFeed from '@/components/sales-feed';
-
 import { ClearHistoryButton } from '@/components/clear-history-button';
-
 import { useToast } from '@/hooks/use-toast';
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 import { getFirebaseDb } from '@/lib/firebase';
 import { ref, onValue, push, remove, set, update, query, orderByChild, equalTo, get } from 'firebase/database';
 import { createPlayerAccount, getFriendlyAuthErrorMessage } from '@/lib/admin-player-service';
-import PlayerManagement from '@/components/player-management';
-
 import { DollarSign, TrendingUp, Package, Wallet, AlertCircle } from 'lucide-react';
-
 import { calculateOverallStatistics, calculateAllTeamStatistics } from '@/lib/statistics';
+
+const Leaderboard = dynamic(() => import('@/components/leaderboard'), { ssr: false });
+const PlayerManagement = dynamic(() => import('@/components/player-management'), { ssr: false });
+const SalesFeed = dynamic(() => import('@/components/sales-feed'), { ssr: false });
+
 
 
 

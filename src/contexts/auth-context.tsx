@@ -177,15 +177,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [authInfo?.uid, authInfo?.type, router]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     const auth = getFirebaseAuth();
     signOut(auth).then(() => {
       setAuthInfo(null);
       router.push('/');
     });
-  };
+  }, [router]);
 
-  const setTeamName = async (teamName: string) => {
+  const setTeamName = useCallback(async (teamName: string) => {
     const auth = getFirebaseAuth();
     const user = auth.currentUser;
     if (user) {
@@ -218,10 +218,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       throw new Error("User not found. You must be logged in to set a team name.");
     }
-  };
+  }, [processUser]);
+
+  const contextValue = React.useMemo(() => ({
+    auth: authInfo,
+    isLoading,
+    isTeamConfirmed: !!authInfo?.name,
+    logout,
+    setTeamName,
+    confirmTeam: setTeamName,
+  }), [authInfo, isLoading, logout, setTeamName]);
 
   return (
-    <AuthContext.Provider value={{ auth: authInfo, isLoading, isTeamConfirmed: !!authInfo?.name, logout, setTeamName, confirmTeam: setTeamName }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
