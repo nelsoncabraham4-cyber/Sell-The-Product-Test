@@ -10,12 +10,22 @@ import ProductTable from '@/components/product-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, TrendingUp, DollarSign, Wallet, Package, Check, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ShoppingBag, TrendingUp, DollarSign, Wallet, Package, Check, X, FileText, QrCode, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getFirebaseDb } from '@/lib/firebase';
 import { ref, onValue, push, runTransaction, get, set } from 'firebase/database';
 import { calculateTeamStatistics } from '@/lib/statistics';
-import { prefetchQrCode } from '@/lib/qr-service';
+import { prefetchQrCode, savePlayerQr, subscribePlayerQrUrl } from '@/lib/qr-service';
 
 const Leaderboard = dynamic(() => import('@/components/leaderboard'), {
   ssr: false,
@@ -28,8 +38,107 @@ export default function DashboardPage() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
-  const [guidelines, setGuidelines] = useState<Array<{ id: string; text: string }>>([]);
   const [masterProductsCount, setMasterProductsCount] = useState<number>(0);
+  const [isGuidelinesOpen, setIsGuidelinesOpen] = useState<boolean>(false);
+  const [guidelines, setGuidelines] = useState<Array<{ id: string; text: string }>>([]);
+
+  // Payment QR Code state
+  const [isQrDialogOpen, setIsQrDialogOpen] = useState<boolean>(false);
+  const [currentQrUrl, setCurrentQrUrl] = useState<string>('');
+  const [qrFile, setQrFile] = useState<File | null>(null);
+  const [isUploadingQr, setIsUploadingQr] = useState<boolean>(false);
+
+  // Listen to the player's own QR code in real time
+  useEffect(() => {
+    if (!auth?.uid) return;
+    const unsub = subscribePlayerQrUrl(auth.uid, (url) => {
+      setCurrentQrUrl(url);
+    });
+    return () => unsub();
+  }, [auth?.uid]);
+
+  const handleQrUpload = async () => {
+    if (!auth?.uid) {
+      toast({
+        title: 'Authentication Required',
+        description: 'You must be logged in as a player to update your QR code.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!qrFile) {
+      toast({
+        title: 'No file selected',
+        description: 'Please select an image file to upload.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const MAX_FILE_SIZE_BYTES = 1.5 * 1024 * 1024;
+    if (qrFile.size > MAX_FILE_SIZE_BYTES) {
+      toast({
+        title: 'Image File Too Large',
+        description: 'Selected image is too large. Please select a QR image under 1.5MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploadingQr(true);
+    try {
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          if (typeof reader.result === 'string') resolve(reader.result);
+          else reject(new Error('Failed to read file.'));
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(qrFile);
+      });
+
+      await savePlayerQr(auth.uid, dataUrl);
+      setCurrentQrUrl(dataUrl);
+      setQrFile(null);
+      toast({
+        title: 'QR Code Updated',
+        description: 'Your payment QR code has been saved successfully.',
+      });
+      setIsQrDialogOpen(false);
+    } catch (err: any) {
+      toast({
+        title: 'Upload Failed',
+        description: err?.message || 'Failed to update QR code.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingQr(false);
+    }
+  };
+
+  // Listen to guidelines in real time (Change 2)
+  useEffect(() => {
+    const db = getFirebaseDb();
+    const guidelinesRef = ref(db, 'guidelines');
+    const unsub = onValue(guidelinesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data || Object.keys(data).length === 0) {
+        const defaultGuidelines = [
+          "Welcome participants! To ensure a fair, competitive, and smooth event, all teams must carefully read and strictly adhere to the following rules:",
+          "1. ⏱️ Time Management\n• Strict Schedule: All sales activities must be completed within the allotted time.\n• No Extensions: No late sales or transactions will be accepted under any circumstances.",
+          "2. 💸 Pricing & Scoring Policy\n• Border Price Limit: Selling any product below its specified base/border price will incur NEGATIVE POINTS.\n• Unsold Inventory: Remaining unsold items will NOT incur any negative marks or penalties.\n• Leaderboard Criteria: Real-time team rankings are calculated solely on total accumulated profit.",
+          "3. 💳 Payment Methods\n• Transactions are strictly allowed through two modes only:\n  - Cash Payments\n  - Digital Payment via Official QR Code",
+          "4. 🌐 Real-Time Portal Updates\n• Immediate Logging: Right after a sale, teams must immediately log the transaction on the official portal.\n• Live Updates: Leaderboard rankings will only update after the entry is successfully logged online.",
+          "5. 🛡️ Integrity & Fair Play\n• Strict Reconciliation: Final cash in hand (and digital QR receipts) will be physically verified against your portal logs.\n• Zero Tolerance: Any deliberate misreporting or malpractice will lead to IMMEDIATE DISQUALIFICATION.",
+          "📌 Quick Tips for Success\n• Double-Check Amounts: Always re-verify sale figures on the portal immediately after each sale to avoid reconciliation errors at the end."
+        ];
+        setGuidelines(defaultGuidelines.map((text, idx) => ({ id: `default-${idx}`, text })));
+      } else {
+        const loaded: Array<{ id: string; text: string }> = Object.entries(data).map(([key, value]) => ({ id: key, ...(value as any) }));
+        setGuidelines(loaded);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   // Pre-warm QR code in background as soon as dashboard loads
   useEffect(() => {
@@ -46,73 +155,28 @@ export default function DashboardPage() {
       router.push('/login');
     } else if (auth.type === 'admin') {
       router.push('/admin/dashboard');
-    } else if (auth.type === 'user' && !auth.name) {
-      router.push('/player/select-team');
     }
   }, [auth, isLoading, router]);
 
-  // Efficient dual-listener merge for master products and per-team inventory
+  // Listen to master products in real time (Quantity removed completely)
   useEffect(() => {
     if (!auth) return;
     const db = getFirebaseDb();
-    const teamId = auth.teamId;
-    if (!teamId) return;
-
-    let prodData: any = null;
-    let invData: any = null;
-    let hasProd = false;
-
-    const combineData = () => {
-      if (!hasProd) return;
-      const combined: Product[] = prodData
-        ? Object.entries(prodData)
-            .map(([key, value]) => {
-              const master = value as any;
-              const teamQty = invData?.[key]?.quantity;
-              const isRemoved = invData?.[key]?.removed === true;
-              return {
-                id: key,
-                name: master.name,
-                actualPrice: master.actualPrice,
-                quantity: typeof teamQty === 'number' ? teamQty : (master.quantity ?? 0),
-                removed: isRemoved,
-              } as any;
-            })
-            .filter((p) => !p.removed)
-        : [];
-      setProducts(combined);
-
-      const masterCount = prodData ? Object.keys(prodData).length : 0;
-      setMasterProductsCount(masterCount);
-
-      if (prodData && invData !== null) {
-        Object.entries(prodData).forEach(([key, val]) => {
-          if (!invData?.[key]) {
-            const initQty = (val as any).quantity ?? 0;
-            set(ref(db, `teamInventory/${teamId}/${key}`), { quantity: initQty });
-          }
-        });
-      }
-    };
-
     const productsRef = ref(db, 'products');
-    const teamInvRef = ref(db, `teamInventory/${teamId}`);
 
     const unsubProd = onValue(productsRef, (pSnap) => {
-      prodData = pSnap.val();
-      hasProd = true;
-      combineData();
+      const prodData = pSnap.val();
+      const loaded: Product[] = prodData
+        ? Object.entries(prodData).map(([key, value]) => ({
+            id: key,
+            ...(value as Omit<Product, 'id'>),
+          }))
+        : [];
+      setProducts(loaded);
+      setMasterProductsCount(loaded.length);
     });
 
-    const unsubInv = onValue(teamInvRef, (iSnap) => {
-      invData = iSnap.val() || {};
-      combineData();
-    });
-
-    return () => {
-      unsubProd();
-      unsubInv();
-    };
+    return () => unsubProd();
   }, [auth]);
 
   // Listen to sales in real time
@@ -126,21 +190,6 @@ export default function DashboardPage() {
         ? Object.entries(data).map(([key, value]) => ({ id: key, ...(value as Omit<Sale, 'id'>) }))
         : [];
       setSales(loaded);
-    });
-    return () => unsub();
-  }, [auth]);
-
-  // Listen to guidelines in real time
-  useEffect(() => {
-    if (!auth) return;
-    const db = getFirebaseDb();
-    const guidelinesRef = ref(db, 'guidelines');
-    const unsub = onValue(guidelinesRef, (snapshot) => {
-      const data = snapshot.val();
-      const loaded: Array<{ id: string; text: string }> = data
-        ? Object.entries(data).map(([key, value]) => ({ id: key, ...(value as any) }))
-        : [];
-      setGuidelines(loaded);
     });
     return () => unsub();
   }, [auth]);
@@ -160,63 +209,22 @@ export default function DashboardPage() {
       return;
     }
     const db = getFirebaseDb();
-    const teamId = auth.teamId;
-    const inventoryRef = ref(db, `teamInventory/${teamId}/${sale.productId}`);
-    const masterRef = ref(db, `products/${sale.productId}`);
-    // Get master product quantity for possible initialization
-    const masterSnap = await get(masterRef);
-    const masterQty = masterSnap.exists() ? (masterSnap.val() as any).quantity ?? 0 : 0;
-    console.log('[handleSale] masterQty', masterQty);
-    const result = await runTransaction(inventoryRef, (product) => {
-      console.log('[transaction] current product data', product);
-
-      const currentQuantity = product ? (product.quantity ?? 0) : masterQty;
-      if (currentQuantity <= 0) {
-        // Out of stock – abort transaction
-        console.log('[transaction] out of stock, aborting');
-        return;
-      }
-      console.log('[transaction] decrementing, new qty', currentQuantity - 1);
-      return { quantity: currentQuantity - 1 };
-    });
-    console.log('[handleSale] transaction result', result);
-    if (!result.committed) {
-      toast({
-        title: 'Out of Stock',
-        description: 'Product is out of stock. Sale not recorded.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    const updatedQty = result.snapshot?.val()?.quantity;
-    // If transaction failed to obtain a quantity (e.g., permission error) or went negative
-    if (updatedQty === undefined) {
-      console.error('[handleSale] transaction returned undefined quantity');
-      toast({
-        title: 'Error',
-        description: 'Unable to process sale. Please try again.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    // Only treat as out‑of‑stock when quantity would become negative (should not happen)
-    if (updatedQty < 0) {
-      console.warn('[handleSale] quantity negative after transaction');
-      toast({
-        title: 'Out of Stock',
-        description: 'Product is out of stock. Sale not recorded.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    // Record the sale – wrap in try/catch to surface errors
+    // Record the sale directly without quantity constraints (Change 4)
     const salesRef = ref(db, 'sales');
     try {
       await push(salesRef, sale);
       console.log('[handleSale] sale recorded', sale);
+      toast({
+        title: 'Sale Recorded',
+        description: `Sale for "${sale.productName}" recorded successfully.`,
+      });
     } catch (e) {
       console.error('[handleSale] failed to push sale', e);
-      alert('Failed to record sale. Please check your connection.');
+      toast({
+        title: 'Sale Failed',
+        description: 'Failed to record sale. Please check your connection.',
+        variant: 'destructive',
+      });
     }
   }, [auth, toast]);
 
@@ -224,7 +232,7 @@ export default function DashboardPage() {
   const userSales = useMemo(() => {
     if (!auth) return [];
     return sales
-      .filter((sale) => sale.teamName === auth.name)
+      .filter((sale) => sale.teamName === (auth.name || ''))
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [sales, auth]);
 
@@ -237,38 +245,38 @@ export default function DashboardPage() {
     return calculateTeamStatistics(auth.name, sales);
   }, [sales, auth]);
 
-  if (isLoading || !auth || auth.type !== 'user' || !auth.name) {
+  if (isLoading || !auth || auth.type !== 'user') {
     return <div className="text-center p-8">Redirecting...</div>;
   }
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-headline text-4xl font-bold">
-          User Dashboard
-        </h1>
-        <p className="text-muted-foreground">Welcome{auth.name ? `, ${auth.name}` : ''}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-headline text-4xl font-bold">
+            User Dashboard
+          </h1>
+          <p className="text-muted-foreground">Welcome{auth.name ? `, ${auth.name}` : ''}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={() => setIsQrDialogOpen(true)}
+          >
+            <QrCode className="h-4 w-4" />
+            Update Payment QR Code
+          </Button>
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={() => setIsGuidelinesOpen(true)}
+          >
+            <FileText className="h-4 w-4" />
+            Guidelines
+          </Button>
+        </div>
       </div>
-
-      {guidelines.length > 0 && (
-        <Card className="border-l-4 border-l-primary bg-card/50 backdrop-blur-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-headline text-lg font-bold flex items-center gap-2">
-              📋 Event Guidelines & Rules
-            </CardTitle>
-            <CardDescription>
-              Please read and adhere to the guidelines below for a fair and smooth event.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {guidelines.map((g) => (
-              <div key={g.id} className="whitespace-pre-line text-sm text-muted-foreground bg-muted/40 p-3 rounded-lg border border-border/50">
-                {g.text}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
 
        <Tabs defaultValue="dashboard">
         <TabsList className="grid w-full grid-cols-2">
@@ -401,9 +409,96 @@ export default function DashboardPage() {
           </Card>
         </TabsContent>
         <TabsContent value="leaderboard" className="mt-8">
-          <Leaderboard sales={sales} isAdmin={false} userTeamName={auth.name} totalProductsCount={masterProductsCount} />
+          <Leaderboard sales={sales} isAdmin={false} userTeamName={auth.name || undefined} totalProductsCount={masterProductsCount} />
         </TabsContent>
       </Tabs>
+
+      {/* Guidelines Modal (Change 2) */}
+      <Dialog open={isGuidelinesOpen} onOpenChange={setIsGuidelinesOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-lg font-bold flex items-center gap-2">
+              📋 Event Guidelines & Rules
+            </DialogTitle>
+            <DialogDescription>
+              Please read and adhere to the guidelines below for a fair and smooth event.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {guidelines.map((g, index) => (
+              <div
+                key={g.id}
+                className="whitespace-pre-line text-sm text-muted-foreground bg-muted/40 p-3 rounded-lg border border-border/50 space-y-1"
+              >
+                <span className="font-bold text-primary block text-xs uppercase tracking-wide">
+                  Guideline #{index + 1}
+                </span>
+                {g.text}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Management Dialog */}
+      <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-headline flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              Update Payment QR Code
+            </DialogTitle>
+            <DialogDescription>
+              Upload or update the payment QR code used for your team's QR sales.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {currentQrUrl ? (
+              <div className="flex flex-col items-center justify-center p-3 bg-muted/30 rounded-lg border border-border/50">
+                <p className="text-xs text-muted-foreground mb-2">Current Active QR Code</p>
+                <img
+                  src={currentQrUrl}
+                  alt="Current Payment QR"
+                  className="w-44 h-44 object-contain rounded border bg-white p-2"
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No active QR code currently set.
+              </p>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="dashboard-qr-upload-input">Select New QR Image</Label>
+              <Input
+                id="dashboard-qr-upload-input"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setQrFile(e.target.files[0]);
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">Supported formats: PNG, JPG, WebP (Max 1.5MB)</p>
+            </div>
+            <Button
+              type="button"
+              className="w-full font-bold"
+              disabled={!qrFile || isUploadingQr}
+              onClick={handleQrUpload}
+            >
+              {isUploadingQr ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving QR Code...
+                </>
+              ) : (
+                'Upload and Update QR Code'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

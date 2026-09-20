@@ -23,8 +23,8 @@ export default function SelectTeamPage() {
       router.push('/login');
     } else if (auth.type === 'admin') {
       router.push('/admin/dashboard');
-    } else if (auth.name && !teamNameInput) {
-      setTeamNameInput(auth.name);
+    } else {
+      router.replace('/dashboard');
     }
   }, [auth, isLoading, router]);
 

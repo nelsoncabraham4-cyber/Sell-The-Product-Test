@@ -29,6 +29,10 @@ export function TeamSalesDialog({ teamName, sales, isOpen, onOpenChange, onUpdat
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
 
   const sortedSales = [...sales].sort((a, b) => b.timestamp - a.timestamp);
+  const productsSold = sales.length;
+  const turnover = sales.reduce((sum, sale) => sum + sale.sellingPrice, 0);
+  const collections = turnover;
+  const loss = sales.reduce((sum, sale) => sum + (sale.profit < 0 ? Math.abs(sale.profit) : 0), 0);
   const totalProfit = sales.reduce((sum, sale) => sum + sale.profit, 0);
 
   const handleUpdate = (saleId: string, newSellingPrice: number, newProfit: number, newPaymentMethod?: 'cash' | 'qr') => {
@@ -48,6 +52,28 @@ export function TeamSalesDialog({ teamName, sales, isOpen, onOpenChange, onUpdat
               A list of all sales made by this team. Total profit: <span className="font-bold text-green-500">₹{totalProfit.toFixed(2)}</span>
             </DialogDescription>
           </DialogHeader>
+
+          {/* Additional details displayed in modal on team selection (Change 3) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-2">
+            <div className="p-3 bg-muted/40 rounded-lg border border-border/50 text-center">
+              <span className="text-xs text-muted-foreground block">Products Sold</span>
+              <span className="text-lg font-bold">{productsSold}</span>
+            </div>
+            <div className="p-3 bg-muted/40 rounded-lg border border-border/50 text-center">
+              <span className="text-xs text-muted-foreground block">Turnover</span>
+              <span className="text-lg font-bold">₹{turnover.toFixed(2)}</span>
+            </div>
+            <div className="p-3 bg-muted/40 rounded-lg border border-border/50 text-center">
+              <span className="text-xs text-muted-foreground block">Collections</span>
+              <span className="text-lg font-bold">₹{collections.toFixed(2)}</span>
+            </div>
+            <div className="p-3 bg-muted/40 rounded-lg border border-border/50 text-center">
+              <span className="text-xs text-muted-foreground block">Loss</span>
+              <span className={`text-lg font-bold ${loss > 0 ? 'text-red-500' : ''}`}>
+                ₹{loss.toFixed(2)}
+              </span>
+            </div>
+          </div>
           <div className="max-h-[60vh] overflow-y-auto pr-4">
             <Table>
               <TableHeader>

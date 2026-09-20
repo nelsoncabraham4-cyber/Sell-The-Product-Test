@@ -16,12 +16,13 @@ interface LeaderboardProps {
   sales: Sale[];
   isAdmin?: boolean;
   userTeamName?: string;
+  players?: Array<{ uid: string; name: string; email: string; teamId?: string; teamName?: string; team?: string }>;
   onUpdateSale?: (saleId: string, newSellingPrice: number, newProfit: number, newPaymentMethod?: 'cash' | 'qr') => void;
   onRemoveProduct?: (teamId: string, productId: string) => void;
   totalProductsCount?: number;
 }
 
-function LeaderboardComponent({ sales, isAdmin = false, userTeamName, onUpdateSale, onRemoveProduct, totalProductsCount }: LeaderboardProps) {
+function LeaderboardComponent({ sales, isAdmin = false, userTeamName, players, onUpdateSale, onRemoveProduct, totalProductsCount }: LeaderboardProps) {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 
   const sortedTeams = useMemo(() => {
@@ -59,6 +60,12 @@ function LeaderboardComponent({ sales, isAdmin = false, userTeamName, onUpdateSa
     }
   };
 
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      setSelectedTeam(null);
+    }
+  };
+
   const teamSales = useMemo(() => {
     if (!selectedTeam) return [];
     return sales.filter(sale => sale.teamName === selectedTeam);
@@ -75,7 +82,7 @@ function LeaderboardComponent({ sales, isAdmin = false, userTeamName, onUpdateSa
           </CardTitle>
           <CardDescription>
             Teams ranked by total profit.
-            {isAdmin && " Click on a team to view their sales."}
+            {isAdmin && " Click on a team to view their sales and additional statistics."}
             {!isAdmin && userTeamName && " Click on your team to view your sales."}
           </CardDescription>
         </CardHeader>
@@ -83,49 +90,76 @@ function LeaderboardComponent({ sales, isAdmin = false, userTeamName, onUpdateSa
           {sortedTeams.length > 0 ? (
             <Table>
               <TableHeader>
-                <TableRow>
-                   <TableHead className="w-[50px] text-center">Rank</TableHead>
-                   <TableHead>Team</TableHead>
-                   <TableHead className="text-right">Products Sold</TableHead>
-                   <TableHead className="text-right">Turnover (₹)</TableHead>
-                   <TableHead className="text-right">Sales Score</TableHead>
-                   <TableHead className="text-right">Coverage</TableHead>
-                   <TableHead className="text-right">Coverage Score</TableHead>
-                   <TableHead className="text-right">Final Score</TableHead>
-                   <TableHead className="text-right">Collection (₹)</TableHead>
-                   <TableHead className="text-right">Profit (₹)</TableHead>
-                   <TableHead className="text-right">Loss (₹)</TableHead>
-                </TableRow>
+                {isAdmin ? (
+                  /* Admin Leaderboard Main View: Rank, Player Name, Team, Profit (Change 3) */
+                  <TableRow>
+                    <TableHead className="w-[80px] text-center">Rank</TableHead>
+                    <TableHead>Player Name</TableHead>
+                    <TableHead>Team</TableHead>
+                    <TableHead className="text-right">Profit (₹)</TableHead>
+                  </TableRow>
+                ) : (
+                  <TableRow>
+                    <TableHead className="w-[80px] text-center">Rank</TableHead>
+                    <TableHead>Team</TableHead>
+                    <TableHead className="text-right">Profit (₹)</TableHead>
+                  </TableRow>
+                )}
               </TableHeader>
               <TableBody>
-                {sortedTeams.map((team, index) => (
-                  <TableRow
-                    key={team.teamName}
-                    className={`${index === 0 ? 'bg-secondary' : ''} ${(isAdmin || team.teamName === userTeamName) ? 'cursor-pointer hover:bg-muted/50' : ''}`}
-                    onClick={() => handleRowClick(team.teamName)}
-                  >
-                    <TableCell className="font-medium text-center">
-                      <div className={`flex justify-center items-center ${getRankColor(index)}`}>
-                        {index === 0 && <Crown className="w-5 h-5 mr-1" />}
-                        {index + 1}
-                      </div>
-                    </TableCell>
-                     <TableCell className="font-medium">{team.teamName}</TableCell>
-                     <TableCell className="text-right">{team.productsSold}</TableCell>
-                     <TableCell className="text-right">₹{team.turnover.toFixed(2)}</TableCell>
-                     <TableCell className="text-right">{team.salesScore.toFixed(1)}%</TableCell>
-                     <TableCell className="text-right">{team.uniqueProductsSold}/{totalProductsCount}</TableCell>
-                     <TableCell className="text-right">{team.coverageScore.toFixed(1)}%</TableCell>
-                     <TableCell className="text-right font-bold">{team.finalScore.toFixed(1)}</TableCell>
-                     <TableCell className="text-right">₹{team.totalCollection.toFixed(2)}</TableCell>
-                     <TableCell className={`text-right font-semibold ${team.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                       ₹{team.profit.toFixed(2)}
-                     </TableCell>
-                     <TableCell className={`text-right ${team.loss > 0 ? 'text-red-600' : ''}`}>
-                       ₹{team.loss.toFixed(2)}
-                     </TableCell>
-                  </TableRow>
-                ))}
+                {sortedTeams.map((team, index) => {
+                  if (isAdmin) {
+                    const matchingPlayer = players?.find(
+                      (p) =>
+                        p.name === team.teamName ||
+                        p.teamId === team.teamName ||
+                        p.teamName === team.teamName ||
+                        sales.find((s) => s.teamName === team.teamName)?.userId === p.uid ||
+                        sales.find((s) => s.teamName === team.teamName)?.teamId === p.teamId
+                    );
+                    const playerName = matchingPlayer?.name || team.teamName;
+                    const displayTeam = matchingPlayer?.teamName || matchingPlayer?.team || team.teamName;
+
+                    return (
+                      <TableRow
+                        key={team.teamName}
+                        className={`${index === 0 ? 'bg-secondary' : ''} cursor-pointer hover:bg-muted/50`}
+                        onClick={() => handleRowClick(team.teamName)}
+                      >
+                        <TableCell className="font-medium text-center">
+                          <div className={`flex justify-center items-center ${getRankColor(index)}`}>
+                            {index === 0 && <Crown className="w-5 h-5 mr-1" />}
+                            {index + 1}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">{playerName}</TableCell>
+                        <TableCell>{displayTeam}</TableCell>
+                        <TableCell className={`text-right font-semibold ${team.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ₹{team.profit.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+
+                  return (
+                    <TableRow
+                      key={team.teamName}
+                      className={`${index === 0 ? 'bg-secondary' : ''} ${team.teamName === userTeamName ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                      onClick={() => handleRowClick(team.teamName)}
+                    >
+                      <TableCell className="font-medium text-center">
+                        <div className={`flex justify-center items-center ${getRankColor(index)}`}>
+                          {index === 0 && <Crown className="w-5 h-5 mr-1" />}
+                          {index + 1}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">{team.teamName}</TableCell>
+                      <TableCell className={`text-right font-semibold ${team.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ₹{team.profit.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (
@@ -135,21 +169,15 @@ function LeaderboardComponent({ sales, isAdmin = false, userTeamName, onUpdateSa
           )}
         </CardContent>
       </Card>
-      {selectedTeam && (isAdmin || selectedTeam === userTeamName) && (
-        <TeamSalesDialog
-          teamName={selectedTeam}
-          sales={teamSales}
-          isOpen={!!selectedTeam}
-          onOpenChange={(open) => {
-            if (!open) {
-              setSelectedTeam(null);
-            }
-          }}
-          onUpdateSale={isAdmin ? onUpdateSale : undefined}
-          onRemoveProduct={isAdmin ? onRemoveProduct : undefined}
-          isAdmin={isAdmin}
-        />
-      )}
+      <TeamSalesDialog
+        teamName={selectedTeam || ''}
+        sales={teamSales}
+        isOpen={!!selectedTeam && (isAdmin || selectedTeam === userTeamName)}
+        onOpenChange={handleDialogClose}
+        onUpdateSale={isAdmin ? onUpdateSale : undefined}
+        onRemoveProduct={isAdmin ? onRemoveProduct : undefined}
+        isAdmin={isAdmin}
+      />
     </>
   );
 }

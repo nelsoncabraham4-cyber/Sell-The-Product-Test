@@ -1,6 +1,7 @@
 import { getFirebaseDb } from '@/lib/firebase';
-import { ref as dbRef, onValue, get } from 'firebase/database';
+import { ref as dbRef, onValue, get, set } from 'firebase/database';
 
+const playerQrCache = new Map<string, string>();
 let cachedQrUrl: string = '';
 let isListening = false;
 let prefetchPromise: Promise<string> | null = null;
@@ -9,7 +10,10 @@ const listeners = new Set<(url: string) => void>();
 /**
  * Returns the currently cached QR code URL (or Data URL) synchronously.
  */
-export function getCachedQrUrl(): string {
+export function getCachedQrUrl(userId?: string): string {
+  if (userId && playerQrCache.has(userId)) {
+    return playerQrCache.get(userId)!;
+  }
   if (!cachedQrUrl && typeof window !== 'undefined') {
     try {
       const stored = sessionStorage.getItem('cached_qr_url');
@@ -40,7 +44,10 @@ function prewarmImage(url: string) {
 /**
  * Updates the cached QR URL and notifies all active listeners.
  */
-function updateCachedQrUrl(url: string) {
+function updateCachedQrUrl(url: string, userId?: string) {
+  if (userId) {
+    playerQrCache.set(userId, url);
+  }
   if (url && url !== cachedQrUrl) {
     cachedQrUrl = url;
     prewarmImage(url);
@@ -56,7 +63,105 @@ function updateCachedQrUrl(url: string) {
 }
 
 /**
- * Starts a real-time listener on the QR code URL (if not already active).
+ * Saves a player's custom payment QR code to Realtime Database.
+ */
+export async function savePlayerQr(userId: string, dataUrl: string): Promise<void> {
+  if (!userId) throw new Error('User ID is required to save QR code');
+  const db = getFirebaseDb();
+  await Promise.all([
+    set(dbRef(db, `users/${userId}/qrCodeUrl`), dataUrl),
+    set(dbRef(db, `users/${userId}/qrImage`), dataUrl),
+    set(dbRef(db, `paymentQRCodes/${userId}`), dataUrl),
+  ]);
+  updateCachedQrUrl(dataUrl, userId);
+}
+
+/**
+ * Fetches a player's QR code from Realtime Database with fallback.
+ */
+export async function fetchPlayerQr(userId?: string): Promise<string> {
+  const db = getFirebaseDb();
+  if (userId) {
+    try {
+      const snap = await get(dbRef(db, `users/${userId}/qrCodeUrl`));
+      if (snap.exists()) {
+        const val = snap.val();
+        if (typeof val === 'string' && val.trim() !== '') {
+          updateCachedQrUrl(val, userId);
+          return val;
+        }
+      }
+    } catch (err) {
+      console.warn('[QR Service] fetchPlayerQr users error:', err);
+    }
+
+    try {
+      const qSnap = await get(dbRef(db, `paymentQRCodes/${userId}`));
+      if (qSnap.exists()) {
+        const val = qSnap.val();
+        if (typeof val === 'string' && val.trim() !== '') {
+          updateCachedQrUrl(val, userId);
+          return val;
+        }
+      }
+    } catch (err) {
+      console.warn('[QR Service] fetchPlayerQr paymentQRCodes error:', err);
+    }
+  }
+
+  // Fallback to default/global if player hasn't uploaded their own QR
+  try {
+    const defSnap = await get(dbRef(db, 'paymentQRCodes/default'));
+    if (defSnap.exists()) {
+      const val = defSnap.val();
+      if (typeof val === 'string' && val.trim() !== '') {
+        return val;
+      }
+    }
+  } catch {}
+
+  try {
+    const rootSnap = await get(dbRef(db, 'qrCodeUrl'));
+    if (rootSnap.exists()) {
+      const val = rootSnap.val();
+      if (typeof val === 'string' && val.trim() !== '') {
+        return val;
+      }
+    }
+  } catch {}
+
+  return '';
+}
+
+/**
+ * Subscribes to real-time QR updates for a specific player.
+ */
+export function subscribePlayerQrUrl(userId: string | undefined, callback: (url: string) => void): () => void {
+  if (!userId || typeof window === 'undefined') {
+    return () => {};
+  }
+  const db = getFirebaseDb();
+  const playerRef = dbRef(db, `users/${userId}/qrCodeUrl`);
+  const unsubscribe = onValue(playerRef, (snap) => {
+    if (snap.exists()) {
+      const val = snap.val();
+      if (typeof val === 'string' && val.trim() !== '') {
+        updateCachedQrUrl(val, userId);
+        callback(val);
+        return;
+      }
+    }
+    // Fallback if player has no QR set
+    fetchPlayerQr().then((fallbackUrl) => {
+      if (fallbackUrl) callback(fallbackUrl);
+    });
+  });
+
+  return () => unsubscribe();
+}
+
+/**
+ * Starts a real-time listener on the global QR code URL.
  */
 export function initQrListener() {
   if (isListening || typeof window === 'undefined') return;
@@ -73,7 +178,6 @@ export function initQrListener() {
           return;
         }
       }
-      // Fallback check qrImage if qrCodeUrl is not set
       get(dbRef(db, 'qrImage')).then((imgSnap) => {
         if (imgSnap.exists()) {
           const imgVal = imgSnap.val();
@@ -92,8 +196,13 @@ export function initQrListener() {
 /**
  * Pre-fetches the QR code from Firebase Realtime Database.
  */
-export async function prefetchQrCode(): Promise<string> {
-  // Return synchronous cache if present
+export async function prefetchQrCode(userId?: string): Promise<string> {
+  if (userId) {
+    const cached = getCachedQrUrl(userId);
+    if (cached) return cached;
+    return fetchPlayerQr(userId);
+  }
+
   const current = getCachedQrUrl();
   if (current) {
     initQrListener();
@@ -104,39 +213,11 @@ export async function prefetchQrCode(): Promise<string> {
 
   prefetchPromise = (async () => {
     try {
-      const db = getFirebaseDb();
-
-      // 1. Check primary path: qrCodeUrl
-      const snap = await get(dbRef(db, 'qrCodeUrl'));
-      if (snap.exists()) {
-        const val = snap.val();
-        if (typeof val === 'string' && val.trim() !== '') {
-          updateCachedQrUrl(val);
-          initQrListener();
-          return val;
-        }
-      }
-
-      // 2. Check fallback path: qrImage
-      const imgSnap = await get(dbRef(db, 'qrImage'));
-      if (imgSnap.exists()) {
-        const imgVal = imgSnap.val();
-        if (typeof imgVal === 'string' && imgVal.trim() !== '') {
-          updateCachedQrUrl(imgVal);
-          initQrListener();
-          return imgVal;
-        }
-      }
-
-      // 3. Check fallback path: paymentQRCodes/default
-      const defaultSnap = await get(dbRef(db, 'paymentQRCodes/default'));
-      if (defaultSnap.exists()) {
-        const defaultVal = defaultSnap.val();
-        if (typeof defaultVal === 'string' && defaultVal.trim() !== '') {
-          updateCachedQrUrl(defaultVal);
-          initQrListener();
-          return defaultVal;
-        }
+      const val = await fetchPlayerQr();
+      if (val) {
+        updateCachedQrUrl(val);
+        initQrListener();
+        return val;
       }
     } catch (err) {
       console.warn('[QR Service] Pre-fetch error:', err);

@@ -7,7 +7,7 @@ export default function SetTeamNameRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/player/select-team');
+    router.replace('/dashboard');
   }, [router]);
 
   return (

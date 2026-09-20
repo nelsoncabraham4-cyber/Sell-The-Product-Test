@@ -3,6 +3,7 @@ import { Inter, Poppins } from 'next/font/google';
 import { AuthProvider } from '@/contexts/auth-context';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/header';
+import { FreezeDiagnostic } from '@/components/freeze-diagnostic';
 import './globals.css';
 
 const inter = Inter({
@@ -19,10 +20,6 @@ const poppins = Poppins({
   display: 'swap',
 });
 
-// DEV-ONLY: freeze diagnostic — tree-shaken out of production
-import { FreezeDiagnostic } from '@/components/freeze-diagnostic';
-const IS_DEV = process.env.NODE_ENV === 'development';
-
 export const metadata: Metadata = {
   title: 'Sell The Product',
   description: 'Sell products and compete on the leaderboard.',
@@ -37,12 +34,11 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
       <body className="font-body antialiased min-h-screen flex flex-col">
         <AuthProvider>
-          {/* DEV-ONLY: auto-injects window.__freezeSnap() and body-style observer */}
-          {IS_DEV && <FreezeDiagnostic />}
           <Header />
           <main className="flex-grow container mx-auto px-4 py-8">
             {children}
           </main>
+          <FreezeDiagnostic />
           <Toaster />
         </AuthProvider>
       </body>

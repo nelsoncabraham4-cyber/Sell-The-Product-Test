@@ -33,103 +33,124 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const processUser = useCallback(async (user: User | null) => {
     setIsLoading(true);
-    if (user) {
-      console.log('[processUser] start - email:', user.email, 'uid:', user.uid);
-      // For all users, the Realtime Database is the source of truth for admin status and team info.
-      const db = getFirebaseDb();
-      const userRef = ref(db, `users/${user.uid}`);
-      const deletedUserRef = ref(db, `deletedUsers/${user.uid}`);
+    try {
+      if (user) {
+        console.log('[processUser] start - email:', user.email, 'uid:', user.uid);
+        // For all users, the Realtime Database is the source of truth for admin status and team info.
+        const db = getFirebaseDb();
+        const userRef = ref(db, `users/${user.uid}`);
+        const deletedUserRef = ref(db, `deletedUsers/${user.uid}`);
 
-      const [snapshot, deletedSnapshot] = await Promise.all([
-        get(userRef),
-        get(deletedUserRef),
-      ]);
+        const [snapshot, deletedSnapshot] = await Promise.all([
+          get(userRef),
+          get(deletedUserRef),
+        ]);
 
-      const userData = snapshot.exists() ? snapshot.val() : null;
-      const isAdminCheck = userData?.isAdmin === true;
-      const isDeleted = (!isAdminCheck) && ((userData && userData.deleted === true) || deletedSnapshot.exists());
+        const userData = snapshot.exists() ? snapshot.val() : null;
+        const isAdminCheck = userData?.isAdmin === true;
+        const isDeleted = (!isAdminCheck) && ((userData && userData.deleted === true) || deletedSnapshot.exists());
 
-      if (isDeleted) {
-        console.log('[processUser] User is permanently deleted. Logging out uid:', user.uid);
-        const auth = getFirebaseAuth();
-        await signOut(auth);
-        setAuthInfo(null);
-        setIsLoading(false);
-        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-        if (!currentPath.startsWith('/admin')) {
-          router.push('/login');
+        if (isDeleted) {
+          console.log('[processUser] User is permanently deleted. Logging out uid:', user.uid);
+          const auth = getFirebaseAuth();
+          await signOut(auth);
+          setAuthInfo(null);
+          setIsLoading(false);
+          const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+          if (!currentPath.startsWith('/admin')) {
+            router.push('/login');
+          }
+          return;
         }
-        return;
-      }
 
-      console.log('[processUser] snapshot exists?', snapshot.exists(), 'data:', userData);
+        console.log('[processUser] snapshot exists?', snapshot.exists(), 'data:', userData);
 
-      let isAdmin = false;
-      let teamName: string | null = null;
-      let teamId: string | null = null;
+        let isAdmin = false;
+        let teamName: string | null = null;
+        let teamId: string | null = null;
 
-      // Check if user record exists in DB
-      if (snapshot.exists()) {
-        isAdmin = userData.isAdmin === true;
-        teamName = userData.name || null;
-        teamId = userData.teamId || user.uid;
-        // ----- Admin promotion check -----
-        const adminEnv = process.env.NEXT_PUBLIC_ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-        console.log('[processUser] adminEnv from env:', adminEnv);
-        const adminEmails = adminEnv
-          ? adminEnv.split(',').map(e => e.trim().toLowerCase()).filter(e => e)
-          : ['admin@example.com'];
-        console.log('[processUser] parsed admin email list:', adminEmails);
-        const emailMatch = user.email && adminEmails.includes(user.email.toLowerCase());
-        console.log('[processUser] does logged‑in email match admin list?', emailMatch);
-        if (emailMatch && userData.isAdmin !== true) {
-          console.log('[processUser] promotion write – old isAdmin:', userData.isAdmin, 'new isAdmin: true', 'reason: email matches admin list');
-          await set(userRef, { ...userData, isAdmin: true });
-          isAdmin = true;
+        // Check if user record exists in DB
+        if (snapshot.exists()) {
+          isAdmin = userData.isAdmin === true;
+          teamName = userData.name || userData.teamName || user.displayName || user.email?.split('@')[0] || 'Team';
+          teamId = userData.teamId || user.uid;
+          // ----- Admin promotion check -----
+          const adminEnv = process.env.NEXT_PUBLIC_ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+          console.log('[processUser] adminEnv from env:', adminEnv);
+          const adminEmails = adminEnv
+            ? adminEnv.split(',').map(e => e.trim().toLowerCase()).filter(e => e)
+            : ['admin@example.com'];
+          console.log('[processUser] parsed admin email list:', adminEmails);
+          const emailMatch = user.email && adminEmails.includes(user.email.toLowerCase());
+          console.log('[processUser] does logged‑in email match admin list?', emailMatch);
+          if (emailMatch && userData.isAdmin !== true) {
+            console.log('[processUser] promotion write – old isAdmin:', userData.isAdmin, 'new isAdmin: true', 'reason: email matches admin list');
+            await set(userRef, { ...userData, isAdmin: true });
+            isAdmin = true;
+          } else {
+            console.log('[processUser] no admin promotion needed – old isAdmin:', userData.isAdmin);
+          }
+          // -----------------------------------
+
         } else {
-          console.log('[processUser] no admin promotion needed – old isAdmin:', userData.isAdmin);
+          // User record doesn't exist in DB - create it only if not deleted
+          const adminEnv = process.env.NEXT_PUBLIC_ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+          const adminEmails = adminEnv
+            ? adminEnv.split(',').map(e => e.trim().toLowerCase()).filter(e => e)
+            : ['admin@example.com'];
+          isAdmin = user.email ? adminEmails.includes(user.email.toLowerCase()) : false;
+          teamName = user.displayName || user.email?.split('@')[0] || 'Team';
+          teamId = user.uid;
+
+          // Create the database record so future logins use DB as source of truth
+          console.log('[processUser] creating new user record – old isAdmin: N/A, new isAdmin:', isAdmin, 'reason: first login or missing DB record');
+          await set(userRef, {
+            name: teamName,
+            email: user.email,
+            teamId: teamId,
+            isAdmin: isAdmin,
+          });
         }
-        // -----------------------------------
 
-      } else {
-        // User record doesn't exist in DB - create it only if not deleted
-        const adminEnv = process.env.NEXT_PUBLIC_ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-        const adminEmails = adminEnv
-          ? adminEnv.split(',').map(e => e.trim().toLowerCase()).filter(e => e)
-          : ['admin@example.com'];
-        isAdmin = user.email ? adminEmails.includes(user.email.toLowerCase()) : false;
-        teamName = user.displayName;
-        teamId = user.uid;
-
-        // Create the database record so future logins use DB as source of truth
-        console.log('[processUser] creating new user record – old isAdmin: N/A, new isAdmin:', isAdmin, 'reason: first login or missing DB record');
-        await set(userRef, {
+        setAuthInfo({
+          uid: user.uid,
+          type: isAdmin ? 'admin' : 'user',
           name: teamName,
           email: user.email,
           teamId: teamId,
-          isAdmin: isAdmin,
         });
+        console.log('[processUser] setAuthInfo:', {
+          uid: user.uid,
+          type: isAdmin ? 'admin' : 'user',
+          name: teamName,
+          email: user.email,
+          teamId: teamId,
+          isAdminRaw: isAdmin,
+        });
+      } else {
+        setAuthInfo(null);
       }
-
-      setAuthInfo({
-        uid: user.uid,
-        type: isAdmin ? 'admin' : 'user',
-        name: teamName,
-        email: user.email,
-        teamId: teamId,
-      });
-      console.log('[processUser] setAuthInfo:', {
-        uid: user.uid,
-        type: isAdmin ? 'admin' : 'user',
-        name: teamName,
-        email: user.email,
-        teamId: teamId,
-        isAdminRaw: isAdmin,
-      });
-    } else {
-      setAuthInfo(null);
+    } catch (error) {
+      console.error('[processUser] Error processing auth state:', error);
+      if (user) {
+        const adminEnv = process.env.NEXT_PUBLIC_ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+        const adminEmails = adminEnv
+          ? adminEnv.split(',').map(e => e.trim().toLowerCase()).filter(e => e)
+          : ['admin@example.com'];
+        const isEmailAdmin = user.email ? adminEmails.includes(user.email.toLowerCase()) : false;
+        setAuthInfo({
+          uid: user.uid,
+          type: isEmailAdmin ? 'admin' : 'user',
+          name: user.displayName || user.email?.split('@')[0] || 'Team',
+          email: user.email,
+          teamId: user.uid,
+        });
+      } else {
+        setAuthInfo(null);
+      }
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [router]);
 
   useEffect(() => {

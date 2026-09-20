@@ -71,11 +71,11 @@ function ProductTableComponent({ products, onSale, onDelete, onEdit, isAdmin }: 
   }, []);
 
   const handleQrSaleConfirm = useCallback((confirmedSale: Omit<Sale, 'id'>) => {
+    setIsQrModalOpen(false);
+    setPendingQrSale(null);
     if (onSale) {
       onSale(confirmedSale);
     }
-    setIsQrModalOpen(false);
-    setPendingQrSale(null);
   }, [onSale]);
 
 
@@ -126,36 +126,30 @@ function ProductTableComponent({ products, onSale, onDelete, onEdit, isAdmin }: 
 
   return (
     <>
-      <div className="rounded-lg border bg-card text-card-foreground">
-        <Table>
+      <div className="rounded-lg border bg-card text-card-foreground overflow-hidden">
+        <Table className="table-fixed w-full">
           <TableHeader>
-            <TableRow>
-              <TableHead>Product Name</TableHead>
-              <TableHead>Actual Price (₹)</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+            <TableRow className="h-12">
+              <TableHead className="w-[42%]">Product Name</TableHead>
+              <TableHead className="w-[23%]">Actual Price (₹)</TableHead>
+              <TableHead className="w-[18%]">Status</TableHead>
+              <TableHead className="w-[17%] text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {products.length > 0 ? (
               products.map((product) => (
-                <TableRow key={product.id} className="transition-colors duration-500">
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>₹{product.actualPrice.toFixed(2)}</TableCell>
-                  <TableCell>{product.quantity ?? 0}</TableCell>
-                  <TableCell>
-                    {isAdmin ? (
-                      <Badge variant="outline">Available</Badge>
-                    ) : (
-                      (product.quantity ?? 0) > 0 ? (
-                        <Badge variant="outline">Available</Badge>
-                      ) : (
-                        <Badge variant="destructive">Out of Stock</Badge>
-                      )
-                    )}
+                <TableRow key={product.id} className="h-14 transition-colors duration-500">
+                  <TableCell className="font-medium truncate max-w-0" title={product.name}>
+                    {product.name}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="whitespace-nowrap">
+                    ₹{product.actualPrice.toFixed(2)}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <Badge variant="outline">Available</Badge>
+                  </TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
                     {isAdmin ? (
                       <div className="flex items-center justify-end gap-1">
                         {/* Bug #6: Edit button */}
@@ -182,8 +176,8 @@ function ProductTableComponent({ products, onSale, onDelete, onEdit, isAdmin }: 
                     ) : (
                       <Button
                         size="sm"
+                        className="w-16"
                         onClick={() => setSelectedProduct(product)}
-                        disabled={(product.quantity ?? 0) <= 0}
                       >
                         Sell
                       </Button>
@@ -193,7 +187,7 @@ function ProductTableComponent({ products, onSale, onDelete, onEdit, isAdmin }: 
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={4} className="h-24 text-center">
                   No products have been added yet.
                 </TableCell>
               </TableRow>
@@ -203,39 +197,32 @@ function ProductTableComponent({ products, onSale, onDelete, onEdit, isAdmin }: 
       </div>
 
       {/* Sell dialog */}
-      {selectedProduct && !isAdmin && onSale && (
+      {!isAdmin && onSale && (
         <SellProductDialog
-          product={selectedProduct}
+          product={selectedProduct || { id: '', name: '', actualPrice: 0 } as Product}
           onSale={handleSale}
           onQrSale={handleQrSaleRequest}
           isOpen={!!selectedProduct}
           onOpenChange={(open) => {
-            if (!open) setSelectedProduct(null);
+            if (!open) {
+              setSelectedProduct(null);
+            }
           }}
         />
       )}
 
       {/* QR Payment Modal */}
-      {pendingQrSale && (
-        <QRPaymentModal
-          open={isQrModalOpen}
-          onOpenChange={(open) => {
-            setIsQrModalOpen(open);
-            if (!open) {
-              setPendingQrSale(null);
-              if (typeof document !== 'undefined') {
-                setTimeout(() => {
-                  if (document.body.style.pointerEvents === 'none') {
-                    document.body.style.pointerEvents = '';
-                  }
-                }, 100);
-              }
-            }
-          }}
-          sale={pendingQrSale}
-          onConfirm={handleQrSaleConfirm}
-        />
-      )}
+      <QRPaymentModal
+        open={isQrModalOpen}
+        onOpenChange={(open) => {
+          setIsQrModalOpen(open);
+          if (!open) {
+            setPendingQrSale(null);
+          }
+        }}
+        sale={pendingQrSale}
+        onConfirm={handleQrSaleConfirm}
+      />
 
       {/* Bug #6: Edit Product dialog */}
       <Dialog open={!!productToEdit} onOpenChange={(open) => !open && setProductToEdit(null)}>

@@ -38,6 +38,8 @@ export function SellProductDialog({
 }: SellProductDialogProps) {
   const [sellingPrice, setSellingPrice] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qr' | undefined>(undefined);
+  const [isConfirmingCash, setIsConfirmingCash] = useState(false);
+  const [pendingCashSale, setPendingCashSale] = useState<Omit<Sale, 'id'> | null>(null);
   const { auth } = useAuth();
   const { toast } = useToast();
 
@@ -45,20 +47,12 @@ export function SellProductDialog({
     if (isOpen) {
       setSellingPrice('');
       setPaymentMethod(undefined);
-      // Pre-warm QR code in background so it's instant if the user selects QR
+      setIsConfirmingCash(false);
+      setPendingCashSale(null);
       prefetchQrCode();
-    }
-  }, [isOpen]);
-
-  // Safeguard: Ensure document.body.style.pointerEvents is restored when dialog closes
-  useEffect(() => {
-    if (!isOpen && typeof document !== 'undefined') {
-      const timer = setTimeout(() => {
-        if (document.body.style.pointerEvents === 'none') {
-          document.body.style.pointerEvents = '';
-        }
-      }, 100);
-      return () => clearTimeout(timer);
+    } else {
+      setIsConfirmingCash(false);
+      setPendingCashSale(null);
     }
   }, [isOpen]);
 
@@ -67,13 +61,26 @@ export function SellProductDialog({
   const [pendingSale, setPendingSale] = useState<Omit<Sale, 'id'> | null>(null);
 
   const handleConfirmInternal = (sale: Omit<Sale, 'id'>) => {
+    onOpenChange(false);
     onSale(sale);
     setPendingSale(null);
     setQrModalOpen(false);
-    onOpenChange(false);
     toast({
       title: 'Sale recorded',
       description: `QR payment for "${sale.productName}" completed.`,
+    });
+  };
+
+  const handleConfirmCashSale = () => {
+    if (!pendingCashSale) return;
+    const saleToRecord = pendingCashSale;
+    setIsConfirmingCash(false);
+    setPendingCashSale(null);
+    onOpenChange(false);
+    onSale(saleToRecord);
+    toast({
+      title: 'Product Sold!',
+      description: `You sold "${product.name}" for ₹${saleToRecord.sellingPrice.toFixed(2)}. Profit: ₹${saleToRecord.profit.toFixed(2)}.`,
     });
   };
 
@@ -111,21 +118,15 @@ export function SellProductDialog({
 
     if (paymentMethod === 'qr') {
       if (onQrSale) {
-        // Delegate QR modal flow to parent ProductTable so closing SellDialog doesn't destroy the QR modal
         onQrSale(sale);
         onOpenChange(false);
       } else {
-        // Fallback standalone flow: keep SellDialog open or hidden behind QR modal
         setPendingSale(sale);
         setQrModalOpen(true);
       }
     } else {
-      onSale(sale);
-      toast({
-        title: 'Product Sold!',
-        description: `You sold "${product.name}" for ₹${price.toFixed(2)}. Profit: ₹${profit.toFixed(2)}.`,
-      });
-      onOpenChange(false);
+      setPendingCashSale(sale);
+      setIsConfirmingCash(true);
     }
   };
 
@@ -133,51 +134,83 @@ export function SellProductDialog({
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="font-headline">Sell "{product.name}"</DialogTitle>
-            <DialogDescription>
-              The actual price is ₹{product.actualPrice.toFixed(2)}. Enter the price you sold it for (max ₹{MAX_SELLING_PRICE.toLocaleString('en-IN')}).
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="selling-price" className="text-right">
-                Selling Price (₹)
-              </Label>
-              <Input
-                id="selling-price"
-                type="number"
-                value={sellingPrice}
-                onChange={(e) => setSellingPrice(e.target.value)}
-                className="col-span-3"
-                placeholder="e.g., 500"
-                min="1"
-                max={MAX_SELLING_PRICE}
-                step="1"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Payment Method</Label>
-              <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as 'cash' | 'qr')} className="col-span-3">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="cash" id="cash" />
-                  <Label htmlFor="cash">Cash</Label>
+          {!isConfirmingCash ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-headline">Sell "{product.name}"</DialogTitle>
+                <DialogDescription>
+                  The actual price is ₹{product.actualPrice.toFixed(2)}. Enter the price you sold it for (max ₹{MAX_SELLING_PRICE.toLocaleString('en-IN')}).
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="selling-price" className="text-right">
+                    Selling Price (₹)
+                  </Label>
+                  <Input
+                    id="selling-price"
+                    type="number"
+                    value={sellingPrice}
+                    onChange={(e) => setSellingPrice(e.target.value)}
+                    className="col-span-3"
+                    placeholder="e.g., 500"
+                    min="1"
+                    max={MAX_SELLING_PRICE}
+                    step="1"
+                  />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="qr" id="qr" />
-                  <Label htmlFor="qr">QR</Label>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Payment Method</Label>
+                  <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as 'cash' | 'qr')} className="col-span-3">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="cash" id="cash" />
+                      <Label htmlFor="cash">Cash</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="qr" id="qr" />
+                      <Label htmlFor="qr">QR</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
-              </RadioGroup>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={handleSell}>Confirm Sale</Button>
-          </DialogFooter>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleSell}>Confirm Sale</Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-headline text-xl">Confirm Payment</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to complete this payment?
+                </DialogDescription>
+              </DialogHeader>
+              {pendingCashSale && (
+                <div className="bg-muted/50 rounded-lg p-3 text-sm flex justify-between items-center border py-3 my-2">
+                  <div>
+                    <span className="text-muted-foreground block text-xs">Selling Price</span>
+                    <span className="font-bold text-base">₹{pendingCashSale.sellingPrice.toFixed(2)}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-muted-foreground block text-xs">Payment Type</span>
+                    <span className="font-medium text-xs bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200 px-2 py-0.5 rounded">Cash</span>
+                  </div>
+                </div>
+              )}
+              <DialogFooter className="flex gap-2 sm:justify-between mt-4">
+                <Button variant="outline" onClick={() => setIsConfirmingCash(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleConfirmCashSale}>
+                  Confirm
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* Standalone fallback QR modal (outside Dialog to avoid nested dialog destruction) */}
-      {!onQrSale && pendingSale && (
+      {!onQrSale && (
         <QRPaymentModal
           open={qrModalOpen}
           onOpenChange={(open) => {

@@ -16,13 +16,11 @@ interface ProductFormProps {
 export default function ProductForm({ addProduct }: ProductFormProps) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
-  const [quantity, setQuantity] = useState('');
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const actualPrice = parseFloat(price);
-    const quantityValue = parseInt(quantity, 10);
     if (!name.trim() || isNaN(actualPrice) || actualPrice <= 0) {
       toast({
         title: 'Invalid Input',
@@ -31,24 +29,14 @@ export default function ProductForm({ addProduct }: ProductFormProps) {
       });
       return;
     }
-    if (isNaN(quantityValue) || quantityValue <= 0) {
-      toast({
-        title: 'Invalid Quantity',
-        description: 'Please enter a valid positive quantity.',
-        variant: 'destructive',
-      });
-      return;
-    }
 
     addProduct({
       name,
       actualPrice,
-      quantity: quantityValue,
     });
 
     setName('');
     setPrice('');
-    setQuantity('');
     toast({
       title: 'Product Added',
       description: `"${name}" has been added to the list.`,
@@ -83,17 +71,6 @@ export default function ProductForm({ addProduct }: ProductFormProps) {
               onChange={(e) => setPrice(e.target.value)}
               min="0.01"
               step="0.01"
-            />
-          </div>
-          <div className="w-full md:w-auto space-y-2">
-            <Label htmlFor="quantity">Quantity</Label>
-            <Input
-              id="quantity"
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              min="1"
-              step="1"
             />
           </div>
           <Button type="submit" className="w-full md:w-auto">
